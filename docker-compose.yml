@@ -1,0 +1,19 @@
+services:
+  backend:
+    restart: always # 꺼지면 재시작
+    container_name: greeneye-backend
+    build: ./backend # greeneye/backend 경로에 있는 Dockerfile로 이미지 빌드
+    networks:
+      - global_network
+  frontend:
+    restart: always # 꺼지면 재시작
+    container_name: greeneye-frontend
+    build: ./frontend # greeneye/backend 경로에 있는 Dockerfile로 이미지 빌드
+    networks:
+      - global_network
+  
+
+
+networks:
+  global_network:
+    external: true
