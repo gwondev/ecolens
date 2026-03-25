@@ -6,6 +6,7 @@ import SensorsRoundedIcon from "@mui/icons-material/SensorsRounded";
 import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import GoogleIcon from "@mui/icons-material/Google";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useRef } from "react";
 import { loginWithGoogleCredential, saveAuth, getUser } from "../services/auth";
 
 const floatSlow = keyframes`
@@ -52,6 +53,12 @@ const featureItems = [
 const Root = () => {
   const navigate = useNavigate();
   const user = getUser();
+  const navigateRef = useRef(navigate);
+  const googleInitializedRef = useRef(false);
+
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
 
   const handleGoogleLogin = async () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -61,33 +68,38 @@ const Root = () => {
       return;
     }
 
-    window.google.accounts.id.initialize({
-      client_id: clientId,
-      callback: async (response) => {
-        try {
-          const credential = response?.credential;
-          if (!credential) {
-            alert("구글 로그인 토큰을 받지 못했습니다.");
-            return;
-          }
+    // initialize()는 1회만 수행 (중복 초기화 방지 -> FedCM AbortError 감소)
+    if (!googleInitializedRef.current) {
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (response) => {
+          try {
+            const credential = response?.credential;
+            if (!credential) {
+              alert("구글 로그인 토큰을 받지 못했습니다.");
+              return;
+            }
 
-          const loginResponse = await loginWithGoogleCredential(credential);
-          if (!loginResponse?.user?.oauthId) {
-            throw new Error("로그인 응답이 올바르지 않습니다.");
-          }
+            const loginResponse = await loginWithGoogleCredential(credential);
+            if (!loginResponse?.user?.oauthId) {
+              throw new Error("로그인 응답이 올바르지 않습니다.");
+            }
 
-          saveAuth(loginResponse);
-          if (loginResponse?.isNewUser) {
-            navigate("/nickname");
-          } else {
-            navigate("/map");
+            saveAuth(loginResponse);
+            if (loginResponse?.isNewUser) {
+              navigateRef.current("/nickname");
+            } else {
+              navigateRef.current("/map");
+            }
+          } catch (error) {
+            console.error(error);
+            alert("로그인 처리 중 오류가 발생했습니다.");
           }
-        } catch (error) {
-          console.error(error);
-          alert("로그인 처리 중 오류가 발생했습니다.");
-        }
-      },
-    });
+        },
+      });
+
+      googleInitializedRef.current = true;
+    }
 
     window.google.accounts.id.prompt();
   };
