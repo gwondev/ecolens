@@ -11,8 +11,21 @@ export async function loginWithGoogleCredential(credential) {
 }
 
 export function saveAuth(loginResponse) {
-  localStorage.setItem(ACCESS_TOKEN_KEY, loginResponse.accessToken);
-  localStorage.setItem(USER_KEY, JSON.stringify(loginResponse.user));
+  if (loginResponse?.accessToken) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, loginResponse.accessToken);
+  } else {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+  }
+
+  if (loginResponse?.user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(loginResponse.user));
+  }
+}
+
+export function saveUser(user) {
+  if (user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  }
 }
 
 export function getAccessToken() {

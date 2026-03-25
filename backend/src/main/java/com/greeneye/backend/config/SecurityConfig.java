@@ -31,7 +31,12 @@ public class SecurityConfig {
             // 4. CORS 설정 (클라우드플레어 터널 도메인 허용)
             .cors(cors -> cors.configurationSource(request -> {
                 var config = new CorsConfiguration();
-                config.setAllowedOrigins(List.of("https://greeneye.gwon.run", "https://gwon.run"));
+                config.setAllowedOrigins(List.of(
+                    "https://greeneye.gwon.run",
+                    "https://gwon.run",
+                    "http://localhost:5173",
+                    "http://127.0.0.1:5173"
+                ));
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                 config.setAllowedHeaders(List.of("*"));
                 config.setAllowCredentials(true); // 쿠키나 인증 헤더 허용

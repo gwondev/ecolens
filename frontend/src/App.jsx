@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import RootPage from "./pages/RootPage";
-import DBPage from "./pages/DBPage";
-import NicknamePage from "./pages/NicknamePage"; // 추가됨
-import MapPage from "./pages/MapPage";           // 추가됨
+import Root from "./pages/Root";
+import DB from "./pages/DB";
+import Nickname from "./pages/Nickname";
+import Map from "./pages/Map";
 import Recognition from "./pages/features/Recognition";
 import Reward from "./pages/features/Reward";
 import Control from "./pages/features/Control";
@@ -13,14 +13,14 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* 시작 및 계정 설정 */}
-        <Route path="/" element={<RootPage />} />
-        <Route path="/nickname" element={<NicknamePage />} />
+        <Route path="/" element={<Root />} />
+        <Route path="/nickname" element={<Nickname />} />
 
         {/* 메인 서비스 (지도) */}
-        <Route path="/map" element={<MapPage />} />
+        <Route path="/map" element={<Map />} />
 
         {/* 관리자 전용 페이지 */}
-        <Route path="/db" element={<DBPage />} />
+        <Route path="/db" element={<DB />} />
 
         {/* 개별 기능 페이지 */}
         <Route path="/features/recognition" element={<Recognition />} />

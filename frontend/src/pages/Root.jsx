@@ -49,7 +49,7 @@ const featureItems = [
   },
 ];
 
-const RootPage = () => {
+const Root = () => {
   const navigate = useNavigate();
   const user = getUser();
 
@@ -72,8 +72,16 @@ const RootPage = () => {
           }
 
           const loginResponse = await loginWithGoogleCredential(credential);
+          if (!loginResponse?.user?.oauthId) {
+            throw new Error("로그인 응답이 올바르지 않습니다.");
+          }
+
           saveAuth(loginResponse);
-          navigate("/db");
+          if (loginResponse?.isNewUser) {
+            navigate("/nickname");
+          } else {
+            navigate("/map");
+          }
         } catch (error) {
           console.error(error);
           alert("로그인 처리 중 오류가 발생했습니다.");
@@ -291,7 +299,7 @@ const RootPage = () => {
             </Button>
           ) : (
             <Button
-              onClick={() => navigate("/db")}
+              onClick={() => navigate("/map")}
               sx={{
                 mt: 1,
                 minWidth: { xs: 220, sm: 250 },
@@ -321,4 +329,4 @@ const RootPage = () => {
   );
 };
 
-export default RootPage;
+export default Root;
