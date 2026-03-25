@@ -54,8 +54,20 @@ public class AuthController {
         user.setLastLoginAt(LocalDateTime.now());
         userRepository.save(user);
 
+        // 프론트에서 기대하는 key들을 고정해서 내려줌 (oauthId가 null/직렬화 불일치로 안 내려오는 케이스 방지)
+        Map<String, Object> userDTO = Map.of(
+                "id", user.getId(),
+                "oauthId", oauthId,
+                "nickname", user.getNickname(),
+                "role", user.getRole(),
+                "status", user.getStatus(),
+                "totalPoints", user.getTotalPoints(),
+                "createdAt", user.getCreatedAt(),
+                "lastLoginAt", user.getLastLoginAt()
+        );
+
         return Map.of(
-            "user", user,
+            "user", userDTO,
             "isNewUser", user.getNickname() == null
         );
     }
@@ -77,12 +89,29 @@ public class AuthController {
                 }
             });
 
+        // upsert: DB 매핑/기존 데이터 이슈로 find가 실패하는 경우에도 흐름이 막히지 않게
         User user = userRepository.findByOauthId(oauthId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+            .orElseGet(() -> {
+                User newUser = new User();
+                newUser.setOauthId(oauthId);
+                newUser.setNickname(trimmedNickname);
+                return newUser;
+            });
 
         user.setNickname(trimmedNickname);
         User savedUser = userRepository.save(user);
 
-        return Map.of("user", savedUser, "updated", true);
+        Map<String, Object> userDTO = Map.of(
+                "id", savedUser.getId(),
+                "oauthId", oauthId,
+                "nickname", savedUser.getNickname(),
+                "role", savedUser.getRole(),
+                "status", savedUser.getStatus(),
+                "totalPoints", savedUser.getTotalPoints(),
+                "createdAt", savedUser.getCreatedAt(),
+                "lastLoginAt", savedUser.getLastLoginAt()
+        );
+
+        return Map.of("user", userDTO, "updated", true);
     }
 }
