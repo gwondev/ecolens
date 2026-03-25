@@ -101,7 +101,7 @@ const NicknamePage = () => {
                 maxWidth: 420,
               }}
             >
-              환영합니다! 서비스에서 사용하실 멋진 별명을 설정해주세요.
+              환영합니다! 별명을 설정해주세요.
             </Typography>
           </Stack>
 
@@ -109,7 +109,7 @@ const NicknamePage = () => {
           <TextField
             fullWidth
             variant="outlined"
-            placeholder="별명 입력 (예: 분리배출왕 건영)"
+            placeholder="별명 입력 (예: 나는그린아이)"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             // 엔터키 쳐도 제출되게 추가

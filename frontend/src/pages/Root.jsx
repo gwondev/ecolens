@@ -50,17 +50,23 @@ const featureItems = [
   },
 ];
 
+// React StrictMode(개발 모드)로 인해 컴포넌트가 리마운트될 수 있어서,
+// initialize/prompt 가드 상태는 컴포넌트 내부 ref가 아니라 모듈 스코프에서 유지합니다.
+let googleInitialized = false;
+let promptLocked = false;
+
 const Root = () => {
   const navigate = useNavigate();
   const user = getUser();
   const navigateRef = useRef(navigate);
-  const googleInitializedRef = useRef(false);
 
   useEffect(() => {
     navigateRef.current = navigate;
   }, [navigate]);
 
   const handleGoogleLogin = async () => {
+    if (promptLocked) return; // 중복 클릭/중복 prompt 방지
+
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
     if (!window.google || !clientId) {
@@ -69,10 +75,11 @@ const Root = () => {
     }
 
     // initialize()는 1회만 수행 (중복 초기화 방지 -> FedCM AbortError 감소)
-    if (!googleInitializedRef.current) {
+    if (!googleInitialized) {
       window.google.accounts.id.initialize({
         client_id: clientId,
         callback: async (response) => {
+          promptLocked = false; // 콜백 진입 시점에 다시 열어둠
           try {
             const credential = response?.credential;
             if (!credential) {
@@ -98,8 +105,14 @@ const Root = () => {
         },
       });
 
-      googleInitializedRef.current = true;
+      googleInitialized = true;
     }
+
+    promptLocked = true;
+    // 사용자가 FedCM 창을 닫거나 콜백이 안 오면 영구 락 방지
+    setTimeout(() => {
+      promptLocked = false;
+    }, 10000);
 
     window.google.accounts.id.prompt();
   };
