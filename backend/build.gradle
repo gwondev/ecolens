@@ -42,7 +42,7 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:+' // JWT용 JSON 파싱
 
     // --- [4] IoT & Messaging (MQTT) ---
-    // ESP32와 통신하기 위해 필수인 MQTT 의존성
+    // ESP32와 통신하기 위해 필수인 MQTT 의존성입니다.
     implementation 'org.springframework.integration:spring-integration-mqtt:+'
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:+'
 
