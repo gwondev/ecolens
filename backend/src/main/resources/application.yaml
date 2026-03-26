@@ -1,7 +1,7 @@
 spring:
   datasource:
-    url: jdbc:mysql://gwon-db:3306/greeneye?serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true&useSSL=false
-    username: root
+    url: jdbc:mysql://gwon-db:3306/greeneye?serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true&useSSL=false&characterEncoding=UTF-8
+    username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD}
   jpa:
     hibernate:
@@ -10,3 +10,17 @@ spring:
       hibernate:
         format_sql: true
         show_sql: true
+
+google:
+  client:
+    id: ${GOOGLE_CLIENT_ID}
+
+gemini:
+  api:
+    key: ${GEMINI_API_KEY}
+
+mqtt:
+  broker-url: ${MQTT_BROKER_URL:tcp://gwon-mosquitto:1883}
+  client-id: ${MQTT_CLIENT_ID:greeneye-backend}
+  username: ${MQTT_USERNAME:}
+  password: ${MQTT_PASSWORD:}

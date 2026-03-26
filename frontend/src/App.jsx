@@ -3,6 +3,8 @@ import Root from "./pages/Root";
 import DB from "./pages/DB";
 import Nickname from "./pages/Nickname";
 import Map from "./pages/Map";
+import Camera from "./pages/Camera";
+import Input from "./pages/Input";
 import Recognition from "./pages/features/Recognition";
 import Reward from "./pages/features/Reward";
 import Control from "./pages/features/Control";
@@ -18,6 +20,8 @@ function App() {
 
         {/* 메인 서비스 (지도) */}
         <Route path="/map" element={<Map />} />
+        <Route path="/camera" element={<Camera />} />
+        <Route path="/input" element={<Input />} />
 
         {/* 관리자 전용 페이지 */}
         <Route path="/db" element={<DB />} />

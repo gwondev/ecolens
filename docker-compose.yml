@@ -3,8 +3,20 @@ services:
     restart: always # 꺼지면 재시작
     container_name: greeneye-backend
     build: ./backend # greeneye/backend 경로에 있는 Dockerfile로 이미지 빌드
+    env_file:
+      - ./backend/.env.production
+    depends_on:
+      - mosquitto
     networks:
       - global_network
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: greeneye-mosquitto
+    restart: always
+    networks:
+      - global_network
+
   frontend:
     restart: always # 꺼지면 재시작
     container_name: greeneye-frontend

@@ -38,10 +38,10 @@ const DB = () => {
           <TableBody>
             {users.map((u) => (
               <TableRow key={u.id} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
-                <TableCell sx={{ color: "#fff" }}>{u.oauthId.substring(0, 8)}...</TableCell>
+                <TableCell sx={{ color: "#fff" }}>{(u.oauthId || "").substring(0, 8)}...</TableCell>
                 <TableCell sx={{ color: "#fff" }}>{u.nickname || "설정 안 됨"}</TableCell>
                 <TableCell sx={{ color: "#fff" }}>{u.role}</TableCell>
-                <TableCell sx={{ color: "#fff" }}>{u.totalPoints}</TableCell>
+                <TableCell sx={{ color: "#fff" }}>{u.totalRewards ?? 0}</TableCell>
                 <TableCell sx={{ color: "#fff" }}>{u.status}</TableCell>
               </TableRow>
             ))}

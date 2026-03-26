@@ -16,11 +16,13 @@ public class RewardHistory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    @Column(name = "disposal_record_id")
-    private Long disposalRecordId;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "disposal_record_id", nullable = false, unique = true)
+    private DisposalRecord disposalRecord;
 
     @Column(name = "points", nullable = false)
     private Integer points;

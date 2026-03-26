@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -41,8 +42,6 @@ public class AuthController {
 
         GoogleIdToken.Payload payload = idToken.getPayload();
         String oauthId = payload.getSubject();
-        String name = (String) payload.get("name");
-
         User user = userRepository.findByOauthId(oauthId)
                 .orElseGet(() -> {
                     User newUser = new User();
@@ -55,16 +54,16 @@ public class AuthController {
         userRepository.save(user);
 
         // 프론트에서 기대하는 key들을 고정해서 내려줌 (oauthId가 null/직렬화 불일치로 안 내려오는 케이스 방지)
-        Map<String, Object> userDTO = Map.of(
-                "id", user.getId(),
-                "oauthId", oauthId,
-                "nickname", user.getNickname(),
-                "role", user.getRole(),
-                "status", user.getStatus(),
-                "totalPoints", user.getTotalPoints(),
-                "createdAt", user.getCreatedAt(),
-                "lastLoginAt", user.getLastLoginAt()
-        );
+        Map<String, Object> userDTO = new HashMap<>();
+        userDTO.put("id", user.getId());
+        userDTO.put("oauthId", oauthId);
+        userDTO.put("nickname", user.getNickname());
+        userDTO.put("role", user.getRole());
+        userDTO.put("status", user.getStatus());
+        userDTO.put("nowRewards", user.getNowRewards());
+        userDTO.put("totalRewards", user.getTotalRewards());
+        userDTO.put("createdAt", user.getCreatedAt());
+        userDTO.put("lastLoginAt", user.getLastLoginAt());
 
         return Map.of(
             "user", userDTO,
@@ -101,16 +100,16 @@ public class AuthController {
         user.setNickname(trimmedNickname);
         User savedUser = userRepository.save(user);
 
-        Map<String, Object> userDTO = Map.of(
-                "id", savedUser.getId(),
-                "oauthId", oauthId,
-                "nickname", savedUser.getNickname(),
-                "role", savedUser.getRole(),
-                "status", savedUser.getStatus(),
-                "totalPoints", savedUser.getTotalPoints(),
-                "createdAt", savedUser.getCreatedAt(),
-                "lastLoginAt", savedUser.getLastLoginAt()
-        );
+        Map<String, Object> userDTO = new HashMap<>();
+        userDTO.put("id", savedUser.getId());
+        userDTO.put("oauthId", oauthId);
+        userDTO.put("nickname", savedUser.getNickname());
+        userDTO.put("role", savedUser.getRole());
+        userDTO.put("status", savedUser.getStatus());
+        userDTO.put("nowRewards", savedUser.getNowRewards());
+        userDTO.put("totalRewards", savedUser.getTotalRewards());
+        userDTO.put("createdAt", savedUser.getCreatedAt());
+        userDTO.put("lastLoginAt", savedUser.getLastLoginAt());
 
         return Map.of("user", userDTO, "updated", true);
     }

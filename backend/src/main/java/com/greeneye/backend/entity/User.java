@@ -28,8 +28,11 @@ public class User {
     @Column(name = "status", nullable = false, length = 20)
     private String status = "ACTIVE";
 
-    @Column(name = "total_points", nullable = false)
-    private Integer totalPoints = 0;
+    @Column(name = "now_rewards", nullable = false)
+    private Integer nowRewards = 0;
+
+    @Column(name = "total_rewards", nullable = false)
+    private Integer totalRewards = 0;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
