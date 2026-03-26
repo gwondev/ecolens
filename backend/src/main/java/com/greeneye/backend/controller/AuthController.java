@@ -64,6 +64,9 @@ public class AuthController {
         userDTO.put("totalRewards", user.getTotalRewards());
         userDTO.put("createdAt", user.getCreatedAt());
         userDTO.put("lastLoginAt", user.getLastLoginAt());
+        userDTO.put("cameraDailyCount", user.getCameraDailyCount());
+        userDTO.put("cameraDailyDate", user.getCameraDailyDate());
+        userDTO.put("lastCameraAt", user.getLastCameraAt());
 
         return Map.of(
             "user", userDTO,
@@ -110,6 +113,9 @@ public class AuthController {
         userDTO.put("totalRewards", savedUser.getTotalRewards());
         userDTO.put("createdAt", savedUser.getCreatedAt());
         userDTO.put("lastLoginAt", savedUser.getLastLoginAt());
+        userDTO.put("cameraDailyCount", savedUser.getCameraDailyCount());
+        userDTO.put("cameraDailyDate", savedUser.getCameraDailyDate());
+        userDTO.put("lastCameraAt", savedUser.getLastCameraAt());
 
         return Map.of("user", userDTO, "updated", true);
     }

@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "users")
@@ -39,6 +40,15 @@ public class User {
 
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
+
+    @Column(name = "camera_daily_count", nullable = false)
+    private Integer cameraDailyCount = 0;
+
+    @Column(name = "camera_daily_date")
+    private LocalDate cameraDailyDate;
+
+    @Column(name = "last_camera_at")
+    private LocalDateTime lastCameraAt;
 
     @PrePersist
     protected void onCreate() {

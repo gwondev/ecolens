@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Box, Container, TextField, Button, Typography, Stack, InputAdornment } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { keyframes } from "@emotion/react";
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import { getUser, saveUser } from "../services/auth";
+import { apiFetch } from "../services/api";
 
 // Guide.jsx에서 가져온 등장 애니메이션
 const fadeInUp = keyframes`
@@ -26,12 +26,15 @@ const NicknamePage = () => {
     }
 
     try {
-      const response = await axios.put(`${import.meta.env.VITE_API_BASE_URL}/auth/nickname`, {
+      const response = await apiFetch("/auth/nickname", {
+        method: "PUT",
+        body: JSON.stringify({
         oauthId: user.oauthId,
         nickname: nickname.trim() // 앞뒤 공백 제거
+        }),
       });
       // 서버 기준 사용자 정보로 로컬 저장 동기화
-      const updatedUser = response?.data?.user || { ...user, nickname: nickname.trim() };
+      const updatedUser = response?.user || { ...user, nickname: nickname.trim() };
       saveUser(updatedUser);
       // 성공하면 지도 페이지로 이동
       navigate("/map");
