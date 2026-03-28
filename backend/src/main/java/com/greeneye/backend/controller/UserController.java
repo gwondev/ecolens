@@ -1,21 +1,104 @@
 package com.greeneye.backend.controller;
 
+import com.greeneye.backend.entity.DisposalRecord;
 import com.greeneye.backend.entity.User;
+import com.greeneye.backend.repository.DisposalRecordRepository;
+import com.greeneye.backend.repository.RewardHistoryRepository;
 import com.greeneye.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
-    private final UserRepository userRepository;
 
-    // 모든 유저 목록 가져오기 (DBPage용)
+    private final UserRepository userRepository;
+    private final DisposalRecordRepository disposalRecordRepository;
+    private final RewardHistoryRepository rewardHistoryRepository;
+
     @GetMapping
     public List<User> getAllUsers() {
-        // 실제로는 여기서 ROLE_ADMIN 체크를 수행해야 함
         return userRepository.findAll();
+    }
+
+    @PutMapping("/{id}")
+    @Transactional
+    public User updateUser(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (body.containsKey("nickname")) {
+            Object v = body.get("nickname");
+            if (v == null) {
+                user.setNickname(null);
+            } else if (v instanceof String s) {
+                if (s.isBlank()) {
+                    user.setNickname(null);
+                } else {
+                    String trimmed = s.trim();
+                    userRepository.findByNickname(trimmed).ifPresent(other -> {
+                        if (!other.getId().equals(id)) {
+                            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다.");
+                        }
+                    });
+                    user.setNickname(trimmed);
+                }
+            }
+        }
+
+        if (body.containsKey("role")) {
+            Object v = body.get("role");
+            if (v instanceof String s) {
+                String r = s.trim().toUpperCase();
+                if (!"USER".equals(r) && !"ADMIN".equals(r)) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "role은 USER 또는 ADMIN 만 가능합니다.");
+                }
+                user.setRole(r);
+            }
+        }
+
+        if (body.containsKey("status")) {
+            Object v = body.get("status");
+            if (v instanceof String s && !s.isBlank()) {
+                user.setStatus(s.trim());
+            }
+        }
+
+        if (body.containsKey("totalRewards")) {
+            Object v = body.get("totalRewards");
+            if (v instanceof Number n) {
+                user.setTotalRewards(Math.max(0, n.intValue()));
+            }
+        }
+
+        if (body.containsKey("nowRewards")) {
+            Object v = body.get("nowRewards");
+            if (v instanceof Number n) {
+                user.setNowRewards(Math.max(0, n.intValue()));
+            }
+        }
+
+        return userRepository.save(user);
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public void deleteUser(@PathVariable Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        List<DisposalRecord> records = disposalRecordRepository.findByUser_IdOrderByCreatedAtDesc(user.getId());
+        for (DisposalRecord dr : records) {
+            rewardHistoryRepository.findByDisposalRecord(dr).ifPresent(rewardHistoryRepository::delete);
+            disposalRecordRepository.delete(dr);
+        }
+        userRepository.delete(user);
     }
 }

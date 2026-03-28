@@ -5,6 +5,7 @@ import Manage from "./pages/Manage";
 import DB from "./pages/DB";
 import Nickname from "./pages/Nickname";
 import Map from "./pages/Map";
+import MapGuide from "./pages/MapGuide";
 import Camera from "./pages/Camera";
 import Input from "./pages/Input";
 import Recognition from "./pages/features/Recognition";
@@ -36,6 +37,7 @@ function App() {
 
           {/* 메인 서비스 (지도) */}
           <Route path="/map" element={<Map />} />
+          <Route path="/map/guide" element={<MapGuide />} />
           <Route path="/camera" element={<Camera />} />
           <Route path="/input" element={<Input />} />
 

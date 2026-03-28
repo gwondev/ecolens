@@ -1,12 +1,12 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { Typography, Box, Paper, Stack, Chip, Button, Alert } from "@mui/material";
+import { Typography, Box, Paper, Stack, Button, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { getEffectiveUser, getEffectiveNickname } from "../services/auth";
 import { apiFetch } from "../services/api";
-import SensorsRoundedIcon from "@mui/icons-material/SensorsRounded";
 import StorageRoundedIcon from "@mui/icons-material/StorageRounded";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
+import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 
 const MapView = lazy(() => import("./MapView.jsx"));
 
@@ -123,25 +123,52 @@ const Map = () => {
   return (
     <Box
       sx={{
-        p: { xs: 2, md: 3 },
+        height: "100dvh",
+        minHeight: "100vh",
         color: "#fff",
         bgcolor: "#030403",
-        minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
+        overflow: "hidden",
+        p: { xs: 1.5, sm: 2, md: 2.5 },
+        boxSizing: "border-box",
       }}
     >
-      <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", md: "center" }} spacing={2} sx={{ mb: 2 }}>
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>
-            반가워요,{" "}
-            <Box component="span" sx={{ color: "#7CFF72" }}>
-              {displayName}
-            </Box>
-            님
-          </Typography>
-          <Typography sx={{ color: "rgba(255,255,255,0.72)", mt: 0.7 }}>
-            위치 권한을 허용하면 내 위치(파란 점)와 모듈(초록 점)이 지도에 표시됩니다.
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        justifyContent="space-between"
+        alignItems={{ xs: "stretch", md: "flex-start" }}
+        spacing={2}
+        sx={{ flexShrink: 0, mb: 1.5 }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ gap: 1.5 }}>
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>
+              반가워요,{" "}
+              <Box component="span" sx={{ color: "#7CFF72" }}>
+                {displayName}
+              </Box>
+              님
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<MenuBookRoundedIcon sx={{ fontSize: 18 }} />}
+              onClick={() => navigate("/map/guide")}
+              sx={{
+                color: "#7CFF72",
+                borderColor: "rgba(124,255,114,0.45)",
+                fontWeight: 700,
+                textTransform: "none",
+                borderRadius: 999,
+                py: 0.6,
+              }}
+            >
+              사이트 이용방법
+            </Button>
+          </Stack>
+          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.68)", mt: 1 }}>
+            내 위치는 파란 점(🔵) · 모듈은 초록 점
           </Typography>
           {heldType && (
             <Typography sx={{ color: "#7CFF72", mt: 1, fontWeight: 700 }}>
@@ -149,43 +176,38 @@ const Map = () => {
             </Typography>
           )}
         </Box>
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-          <Chip
-            icon={<SensorsRoundedIcon />}
-            label="실시간 모듈"
-            sx={{
-              color: "#7CFF72",
-              border: "1px solid rgba(124,255,114,0.28)",
-              backgroundColor: "rgba(124,255,114,0.08)",
-            }}
-          />
-          {showAdminNav && (
-            <>
-              <Button
-                size="small"
-                startIcon={<AdminPanelSettingsRoundedIcon />}
-                onClick={() => navigate("/manage")}
-                sx={{ color: "#7CFF72", border: "1px solid rgba(124,255,114,0.4)" }}
-              >
-                Manage
-              </Button>
-              <Button
-                size="small"
-                startIcon={<StorageRoundedIcon />}
-                onClick={() => navigate("/db")}
-                sx={{ color: "#7CFF72", border: "1px solid rgba(124,255,114,0.4)" }}
-              >
-                DB
-              </Button>
-            </>
-          )}
-        </Stack>
+        {showAdminNav && (
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ flexShrink: 0 }}>
+            <Button
+              size="small"
+              startIcon={<AdminPanelSettingsRoundedIcon />}
+              onClick={() => navigate("/manage")}
+              sx={{ color: "#7CFF72", border: "1px solid rgba(124,255,114,0.4)" }}
+            >
+              Manage
+            </Button>
+            <Button
+              size="small"
+              startIcon={<StorageRoundedIcon />}
+              onClick={() => navigate("/db")}
+              sx={{ color: "#7CFF72", border: "1px solid rgba(124,255,114,0.4)" }}
+            >
+              DB
+            </Button>
+          </Stack>
+        )}
       </Stack>
 
       {geoMessage && (
         <Alert
           severity="warning"
-          sx={{ mb: 2, bgcolor: "rgba(255,193,7,0.12)", color: "#fff", border: "1px solid rgba(255,193,7,0.35)" }}
+          sx={{
+            mb: 1.5,
+            flexShrink: 0,
+            bgcolor: "rgba(255,193,7,0.12)",
+            color: "#fff",
+            border: "1px solid rgba(255,193,7,0.35)",
+          }}
           action={
             <Button color="inherit" size="small" onClick={requestGeoAgain}>
               다시 요청
@@ -199,8 +221,8 @@ const Map = () => {
       <Paper
         sx={{
           flex: 1,
-          minHeight: { xs: 320, md: 380 },
-          height: { xs: "48vh", md: "52vh" },
+          minHeight: 0,
+          position: "relative",
           borderRadius: 3,
           overflow: "hidden",
           border: "1px solid rgba(124,255,114,0.25)",
@@ -210,7 +232,7 @@ const Map = () => {
       >
         <Suspense
           fallback={
-            <Box sx={{ height: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.6)" }}>
+            <Box sx={{ height: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.6)", minHeight: 280 }}>
               지도 로딩…
             </Box>
           }
@@ -221,13 +243,13 @@ const Map = () => {
 
       <Box
         sx={{
-          mt: "auto",
-          pt: 3,
-          pb: 2,
+          flexShrink: 0,
+          pt: 2,
+          pb: 1,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 1.5,
+          gap: 1,
         }}
       >
         <Button
@@ -237,10 +259,10 @@ const Map = () => {
           onClick={() => navigate("/camera")}
           sx={{
             px: { xs: 4, sm: 6 },
-            py: 2,
-            minWidth: { xs: 280, sm: 320 },
+            py: 1.75,
+            minWidth: { xs: 260, sm: 300 },
             borderRadius: 999,
-            fontSize: "1.15rem",
+            fontSize: "1.05rem",
             fontWeight: 900,
             letterSpacing: "-0.02em",
             color: "#0a0f0a",
@@ -276,7 +298,7 @@ const Map = () => {
       </Box>
 
       {!loading && modules.length > 0 && (
-        <Box sx={{ mt: 2, display: "grid", gap: 1, maxWidth: 900 }}>
+        <Box sx={{ flexShrink: 0, mt: 1, maxHeight: "22vh", overflow: "auto", display: "grid", gap: 1, maxWidth: 900, alignSelf: "stretch", mx: "auto", width: "100%" }}>
           {modules.map((m) => (
             <Paper key={m.id} sx={{ p: 1.5, bgcolor: "rgba(255,255,255,0.05)", border: "1px solid rgba(124,255,114,0.2)" }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
