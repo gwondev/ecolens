@@ -8,8 +8,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface DisposalRecordRepository extends JpaRepository<DisposalRecord, Long> {
-    // 특정 사용자의 배출 기록 리스트 가져오기
     List<DisposalRecord> findByUser_IdOrderByCreatedAtDesc(Long userId);
+
+    List<DisposalRecord> findByModule_Id(Long moduleId);
 
     Optional<DisposalRecord> findFirstByUserAndModuleAndStatusOrderByCreatedAtDesc(User user, Module module, String status);
 }

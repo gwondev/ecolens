@@ -1,5 +1,6 @@
 import { Box, Typography, Container, Stack, Button } from "@mui/material";
 import { keyframes } from "@emotion/react";
+import { motion } from "framer-motion";
 import CameraAltRoundedIcon from "@mui/icons-material/CameraAltRounded";
 import RecyclingRoundedIcon from "@mui/icons-material/RecyclingRounded";
 import SensorsRoundedIcon from "@mui/icons-material/SensorsRounded";
@@ -193,7 +194,7 @@ const Root = () => {
           textAlign="center"
           sx={{ py: { xs: 6, md: 8 } }}
         >
-          <Stack spacing={2} alignItems="center">
+          <Stack spacing={2} alignItems="center" component={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}>
             <Typography
               sx={{
                 fontSize: { xs: "2.7rem", sm: "4.3rem", md: "6rem" },
@@ -225,6 +226,13 @@ const Root = () => {
           </Stack>
 
           <Box
+            component={motion.div}
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: {},
+              visible: { transition: { staggerChildren: 0.08, delayChildren: 0.2 } },
+            }}
             sx={{
               width: "100%",
               maxWidth: 620,
@@ -234,8 +242,15 @@ const Root = () => {
             }}
           >
             {featureItems.map((item) => (
-              <Button
+              <motion.div
                 key={item.title}
+                variants={{
+                  hidden: { opacity: 0, y: 16 },
+                  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
+                }}
+                style={{ width: "100%", minWidth: 0 }}
+              >
+              <Button
                 fullWidth
                 onClick={() => navigate(item.path)}
                 sx={{
@@ -296,6 +311,7 @@ const Root = () => {
                   </Typography>
                 </Stack>
               </Button>
+              </motion.div>
             ))}
           </Box>
 

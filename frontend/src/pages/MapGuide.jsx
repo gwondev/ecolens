@@ -42,8 +42,8 @@ const MapGuide = () => {
   const navigate = useNavigate();
 
   return (
-    <Box sx={{ minHeight: "100dvh", bgcolor: "#030403", color: "#fff", py: { xs: 3, md: 4 } }}>
-      <Container maxWidth="md">
+    <Box sx={{ minHeight: "100dvh", bgcolor: "#030403", color: "#fff", py: { xs: 2.5, md: 4 } }}>
+      <Container maxWidth="md" sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }} flexWrap="wrap" gap={2}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: "-0.03em" }}>

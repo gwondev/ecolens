@@ -11,6 +11,7 @@ import com.greeneye.backend.repository.UserRepository;
 import com.greeneye.backend.service.MqttPublisherService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -196,5 +197,55 @@ public class ModuleController {
         } catch (NumberFormatException e) {
             return fallback;
         }
+    }
+
+    @PutMapping("/{id}")
+    @Transactional
+    public Module updateModule(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        Module module = moduleRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Module not found"));
+
+        if (body.containsKey("serialNumber")) {
+            String sn = body.get("serialNumber").toString().trim();
+            if (!sn.isBlank()) {
+                moduleRepository.findBySerialNumber(sn).ifPresent(other -> {
+                    if (!other.getId().equals(id)) {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, "serialNumber already exists");
+                    }
+                });
+                module.setSerialNumber(sn);
+            }
+        }
+        if (body.containsKey("organization") && body.get("organization") != null) {
+            module.setOrganization(body.get("organization").toString().trim());
+        }
+        if (body.containsKey("lat")) {
+            module.setLat(doubleOrDefault(body.get("lat"), module.getLat() != null ? module.getLat() : 35.1469));
+        }
+        if (body.containsKey("lon")) {
+            module.setLon(doubleOrDefault(body.get("lon"), module.getLon() != null ? module.getLon() : 126.9228));
+        }
+        if (body.containsKey("type") && body.get("type") != null) {
+            module.setType(body.get("type").toString().trim().toUpperCase());
+        }
+        if (body.containsKey("status") && body.get("status") != null) {
+            module.setStatus(body.get("status").toString().trim());
+        }
+        module.setLastHeartbeat(LocalDateTime.now());
+        return moduleRepository.save(module);
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public void deleteModule(@PathVariable Long id) {
+        Module module = moduleRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Module not found"));
+
+        List<DisposalRecord> records = disposalRecordRepository.findByModule_Id(module.getId());
+        for (DisposalRecord dr : records) {
+            rewardHistoryRepository.findByDisposalRecord(dr).ifPresent(rewardHistoryRepository::delete);
+            disposalRecordRepository.delete(dr);
+        }
+        moduleRepository.delete(module);
     }
 }

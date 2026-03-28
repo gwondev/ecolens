@@ -1,7 +1,8 @@
 import { useEffect } from "react";
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
-import { Button, Stack, Typography, Box } from "@mui/material";
+import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from "react-leaflet";
+import { Button, Typography, Box } from "@mui/material";
 import "leaflet/dist/leaflet.css";
+import "./map-popup.css";
 
 function FlyTo({ center, zoom }) {
   const map = useMap();
@@ -57,8 +58,8 @@ export default function MapView({ userPos, modules, onReady }) {
               weight: 2,
             }}
           >
-            <Popup>
-              <Typography variant="body2" fontWeight={700}>
+            <Popup className="greeneye-popup">
+              <Typography variant="body2" fontWeight={700} sx={{ color: "#e8ffe8" }}>
                 내 위치
               </Typography>
             </Popup>
@@ -66,6 +67,7 @@ export default function MapView({ userPos, modules, onReady }) {
         )}
         {modules.map((m) => {
           if (m.lat == null || m.lon == null) return null;
+          const org = (m.organization && String(m.organization).trim()) || "기관 미등록";
           return (
             <CircleMarker
               key={m.id}
@@ -78,18 +80,40 @@ export default function MapView({ userPos, modules, onReady }) {
                 weight: 2,
               }}
             >
-              <Popup>
-                <Stack spacing={1} sx={{ minWidth: 160 }}>
-                  <Typography variant="body2" fontWeight={700}>
-                    {m.serialNumber}
+              <Tooltip direction="top" offset={[0, -6]} opacity={1} permanent>
+                <span style={{ color: "#7CFF72", fontWeight: 800, fontSize: 12, textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>{m.type || "—"}</span>
+              </Tooltip>
+              <Popup className="greeneye-popup">
+                <Box sx={{ minWidth: { xs: 200, sm: 220 }, maxWidth: 280 }}>
+                  <Typography sx={{ color: "#7CFF72", fontWeight: 800, fontSize: "0.95rem", lineHeight: 1.3, mb: 0.75 }}>
+                    {org}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {m.type} · {m.status}
+                  <Typography sx={{ color: "rgba(232,255,232,0.88)", fontSize: "0.78rem", mb: 0.35 }}>
+                    수거 종류 · <Box component="span" sx={{ color: "#b8ff9e", fontWeight: 700 }}>{m.type || "—"}</Box>
                   </Typography>
-                  <Button size="small" variant="contained" sx={{ bgcolor: "#7CFF72", color: "#000" }} onClick={() => onReady(m.serialNumber)}>
-                    버리기(READY)
+                  <Typography sx={{ color: "rgba(232,255,232,0.75)", fontSize: "0.72rem", mb: 1 }}>
+                    상태 {m.status || "—"}
+                    {m.totalDisposalCount != null ? ` · 누적 배출 ${m.totalDisposalCount}회` : ""}
+                  </Typography>
+                  <Button
+                    fullWidth
+                    size="small"
+                    variant="contained"
+                    onClick={() => onReady(m.serialNumber)}
+                    sx={{
+                      bgcolor: "#7CFF72",
+                      color: "#050805",
+                      fontWeight: 900,
+                      textTransform: "none",
+                      borderRadius: 2,
+                      py: 0.75,
+                      boxShadow: "0 4px 16px rgba(124,255,114,0.25)",
+                      "&:hover": { bgcolor: "#9dff92" },
+                    }}
+                  >
+                    버리기
                   </Button>
-                </Stack>
+                </Box>
               </Popup>
             </CircleMarker>
           );

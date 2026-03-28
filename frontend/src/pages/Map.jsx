@@ -1,9 +1,8 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, useMemo } from "react";
 import { Typography, Box, Paper, Stack, Button, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { getEffectiveUser, getEffectiveNickname } from "../services/auth";
 import { apiFetch } from "../services/api";
-import StorageRoundedIcon from "@mui/icons-material/StorageRounded";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
@@ -96,6 +95,12 @@ const Map = () => {
   };
 
   const handleReady = async (serialNumber) => {
+    const h = (heldType || sessionStorage.getItem(HELD_KEY) || "").trim().toUpperCase();
+    const mod = modules.find((x) => x.serialNumber === serialNumber);
+    if (h && mod && (mod.type || "GENERAL").toUpperCase() !== h) {
+      alert(`Camera에서 선택한 분류(${h})와 같은 유형의 쓰레기통만 사용할 수 있습니다.`);
+      return;
+    }
     const selected = sessionStorage.getItem(HELD_KEY) || "CAN";
     try {
       await apiFetch(`/modules/${serialNumber}/ready`, {
@@ -120,6 +125,12 @@ const Map = () => {
   const showAdminNav = user?.role === "ADMIN";
   const displayName = user?.nickname || getEffectiveNickname() || "사용자";
 
+  const modulesForMap = useMemo(() => {
+    const h = (heldType || "").trim().toUpperCase();
+    if (!h) return modules;
+    return modules.filter((m) => (m.type || "GENERAL").toUpperCase() === h);
+  }, [modules, heldType]);
+
   return (
     <Box
       sx={{
@@ -130,7 +141,8 @@ const Map = () => {
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        p: { xs: 1.5, sm: 2, md: 2.5 },
+        p: { xs: 1.25, sm: 2, md: 2.5 },
+        pb: { xs: 1, sm: 1.25 },
         boxSizing: "border-box",
       }}
     >
@@ -143,7 +155,15 @@ const Map = () => {
       >
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ gap: 1.5 }}>
-            <Typography variant="h5" sx={{ fontWeight: 800 }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 800,
+                fontSize: { xs: "1.15rem", sm: "1.5rem" },
+                lineHeight: 1.25,
+                wordBreak: "keep-all",
+              }}
+            >
               반가워요,{" "}
               <Box component="span" sx={{ color: "#7CFF72" }}>
                 {displayName}
@@ -161,42 +181,73 @@ const Map = () => {
                 fontWeight: 700,
                 textTransform: "none",
                 borderRadius: 999,
-                py: 0.6,
+                py: { xs: 0.75, sm: 0.6 },
+                minHeight: { xs: 40, sm: 34 },
+                fontSize: { xs: "0.8rem", sm: "0.875rem" },
               }}
             >
               사이트 이용방법
             </Button>
           </Stack>
-          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.68)", mt: 1 }}>
-            내 위치는 파란 점(🔵) · 모듈은 초록 점
+          <Typography
+            variant="body2"
+            component="div"
+            sx={{ color: "rgba(255,255,255,0.68)", mt: 1, fontSize: { xs: "0.78rem", sm: "0.875rem" }, lineHeight: 1.5 }}
+          >
+            내 위치{" "}
+            <Box component="span" aria-label="파란 원" sx={{ display: "inline-block" }}>
+              🔵
+            </Box>{" "}
+             모듈{" "}
+            <Box component="span" aria-label="초록 원" sx={{ display: "inline-block" }}>
+              🟢
+            </Box>
           </Typography>
           {heldType && (
-            <Typography sx={{ color: "#7CFF72", mt: 1, fontWeight: 700 }}>
+            <Typography sx={{ color: "#7CFF72", mt: 0.75, fontWeight: 700, fontSize: { xs: "0.75rem", sm: "0.875rem" }, lineHeight: 1.4 }}>
               인식·선택 분류: {heldType} (Camera에서 확정 시 저장)
             </Typography>
           )}
         </Box>
         {showAdminNav && (
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ flexShrink: 0 }}>
-            <Button
-              size="small"
-              startIcon={<AdminPanelSettingsRoundedIcon />}
-              onClick={() => navigate("/manage")}
-              sx={{ color: "#7CFF72", border: "1px solid rgba(124,255,114,0.4)" }}
-            >
-              Manage
-            </Button>
-            <Button
-              size="small"
-              startIcon={<StorageRoundedIcon />}
-              onClick={() => navigate("/db")}
-              sx={{ color: "#7CFF72", border: "1px solid rgba(124,255,114,0.4)" }}
-            >
-              DB
-            </Button>
-          </Stack>
+          <Button
+            size="small"
+            fullWidth
+            startIcon={<AdminPanelSettingsRoundedIcon />}
+            onClick={() => navigate("/manage")}
+            sx={{
+              color: "#7CFF72",
+              border: "1px solid rgba(124,255,114,0.4)",
+              flexShrink: 0,
+              alignSelf: { xs: "stretch", md: "flex-start" },
+              minHeight: 42,
+              maxWidth: { md: 200 },
+              fontWeight: 800,
+              textTransform: "none",
+            }}
+          >
+            MANAGE
+          </Button>
         )}
       </Stack>
+
+      {heldType && modules.length > modulesForMap.length && (
+        <Alert
+          severity="info"
+          sx={{
+            mb: 1.5,
+            flexShrink: 0,
+            py: { xs: 0.5, sm: 1 },
+            bgcolor: "rgba(124,255,114,0.1)",
+            color: "#e8ffe8",
+            border: "1px solid rgba(124,255,114,0.28)",
+            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+            "& .MuiAlert-message": { width: "100%" },
+          }}
+        >
+          선택 분류({heldType})에 맞는 통만 표시 중입니다.
+        </Alert>
+      )}
 
       {geoMessage && (
         <Alert
@@ -237,7 +288,7 @@ const Map = () => {
             </Box>
           }
         >
-          <MapView userPos={userPos} modules={modules} onReady={handleReady} />
+          <MapView userPos={userPos} modules={modulesForMap} onReady={handleReady} />
         </Suspense>
       </Paper>
 
@@ -255,15 +306,18 @@ const Map = () => {
         <Button
           variant="contained"
           size="large"
-          startIcon={<PhotoCameraRoundedIcon sx={{ fontSize: 28 }} />}
+          startIcon={<PhotoCameraRoundedIcon sx={{ fontSize: { xs: 24, sm: 28 } }} />}
           onClick={() => navigate("/camera")}
           sx={{
-            px: { xs: 4, sm: 6 },
-            py: 1.75,
-            minWidth: { xs: 260, sm: 300 },
+            px: { xs: 3, sm: 6 },
+            py: { xs: 1.5, sm: 1.75 },
+            width: { xs: "100%", sm: "auto" },
+            maxWidth: { xs: 400, sm: "none" },
+            minWidth: { xs: "unset", sm: 300 },
             borderRadius: 999,
-            fontSize: "1.05rem",
+            fontSize: { xs: "0.95rem", sm: "1.05rem" },
             fontWeight: 900,
+            minHeight: { xs: 48, sm: 56 },
             letterSpacing: "-0.02em",
             color: "#0a0f0a",
             bgcolor: "#7CFF72",
@@ -297,15 +351,33 @@ const Map = () => {
         )}
       </Box>
 
-      {!loading && modules.length > 0 && (
-        <Box sx={{ flexShrink: 0, mt: 1, maxHeight: "22vh", overflow: "auto", display: "grid", gap: 1, maxWidth: 900, alignSelf: "stretch", mx: "auto", width: "100%" }}>
+      {showAdminNav && !loading && modules.length > 0 && (
+        <Box
+          sx={{
+            flexShrink: 0,
+            mt: 1,
+            maxHeight: { xs: "18vh", sm: "22vh" },
+            overflow: "auto",
+            display: "grid",
+            gap: { xs: 0.75, sm: 1 },
+            maxWidth: 900,
+            alignSelf: "stretch",
+            mx: "auto",
+            width: "100%",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
           {modules.map((m) => (
-            <Paper key={m.id} sx={{ p: 1.5, bgcolor: "rgba(255,255,255,0.05)", border: "1px solid rgba(124,255,114,0.2)" }}>
+            <Paper key={m.id} sx={{ p: { xs: 1, sm: 1.5 }, bgcolor: "rgba(255,255,255,0.05)", border: "1px solid rgba(124,255,114,0.2)" }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-                <Typography sx={{ color: "#fff" }}>
+                <Typography sx={{ color: "#fff", fontSize: { xs: "0.72rem", sm: "0.875rem" }, wordBreak: "break-all" }}>
                   {m.serialNumber} · {m.type} · {m.status} · ({m.lat?.toFixed?.(5) ?? "-"}, {m.lon?.toFixed?.(5) ?? "-"})
                 </Typography>
-                <Button size="small" onClick={() => handleReady(m.serialNumber)} sx={{ color: "#7CFF72", border: "1px solid rgba(124,255,114,0.4)" }}>
+                <Button
+                  size="small"
+                  onClick={() => handleReady(m.serialNumber)}
+                  sx={{ color: "#7CFF72", border: "1px solid rgba(124,255,114,0.4)", minWidth: 72, minHeight: 36 }}
+                >
                   READY
                 </Button>
               </Stack>
