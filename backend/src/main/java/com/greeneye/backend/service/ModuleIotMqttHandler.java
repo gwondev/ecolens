@@ -27,6 +27,7 @@ public class ModuleIotMqttHandler {
                 case "DEFAULT" -> moduleDisposalService.setModuleStatusDefault(serialNumber);
                 case "READY" -> handleReadyTimeout(serialNumber, root);
                 case "CHECK" -> handleCheck(serialNumber, root);
+                case "FULL" -> moduleDisposalService.setModuleStatusFull(serialNumber);
                 default -> log.warn("MQTT unknown status serial={} status={}", serialNumber, status);
             }
         } catch (Exception e) {

@@ -67,6 +67,7 @@ export default function MapView({ userPos, modules, onReady }) {
         )}
         {modules.map((m) => {
           if (m.lat == null || m.lon == null) return null;
+          const isFull = String(m.status || "").toUpperCase() === "FULL";
           const org = (m.organization && String(m.organization).trim()) || "기관 미등록";
           return (
             <CircleMarker
@@ -74,8 +75,8 @@ export default function MapView({ userPos, modules, onReady }) {
               center={[m.lat, m.lon]}
               radius={11}
               pathOptions={{
-                color: "#7CFF72",
-                fillColor: "#1a2e1a",
+                color: isFull ? "#ff6b6b" : "#7CFF72",
+                fillColor: isFull ? "#3a1616" : "#1a2e1a",
                 fillOpacity: 0.85,
                 weight: 2,
               }}
@@ -99,19 +100,20 @@ export default function MapView({ userPos, modules, onReady }) {
                     fullWidth
                     size="small"
                     variant="contained"
+                    disabled={isFull}
                     onClick={() => onReady(m.serialNumber)}
                     sx={{
-                      bgcolor: "#7CFF72",
-                      color: "#050805",
+                      bgcolor: isFull ? "rgba(255,255,255,0.2)" : "#7CFF72",
+                      color: isFull ? "rgba(255,255,255,0.75)" : "#050805",
                       fontWeight: 900,
                       textTransform: "none",
                       borderRadius: 2,
                       py: 0.75,
-                      boxShadow: "0 4px 16px rgba(124,255,114,0.25)",
-                      "&:hover": { bgcolor: "#9dff92" },
+                      boxShadow: isFull ? "none" : "0 4px 16px rgba(124,255,114,0.25)",
+                      "&:hover": { bgcolor: isFull ? "rgba(255,255,255,0.2)" : "#9dff92" },
                     }}
                   >
-                    버리기
+                    {isFull ? "가득참(FULL)" : "버리기"}
                   </Button>
                 </Box>
               </Popup>

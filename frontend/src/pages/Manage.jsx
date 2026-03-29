@@ -279,6 +279,13 @@ const Manage = () => {
             <Button onClick={loadOverview} sx={{ color: "#000", bgcolor: "#7CFF72", fontWeight: 800, minHeight: 40, flex: { xs: 1, sm: "none" }, px: { sm: 2 } }}>
               새로고침
             </Button>
+            <Button
+              variant="outlined"
+              sx={{ color: "#7CFF72", borderColor: "rgba(124,255,114,0.35)", minHeight: 40, flex: { xs: 1, sm: "none" } }}
+              onClick={() => navigate("/mosquitto")}
+            >
+              /mosquitto
+            </Button>
           </Stack>
         </Stack>
 

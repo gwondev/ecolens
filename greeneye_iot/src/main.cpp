@@ -5,18 +5,15 @@
 #include <mqtt_client.h>
 #include <time.h>
 
-// Arduino WiFiClientSecure 의 esp_crt_bundle.h 가 IDF 헤더와 이름이 겹침 → SDK 번들 attach 만 전방 선언
-extern "C" esp_err_t esp_crt_bundle_attach(void *conf);
-
 // ========== 모듈 고유번호만 수정 (DB modules.serial_number) ==========
 static const char *MODULE_SERIAL = "g1";
 
 /**
  * Cloudflare Tunnel: HTTP(S) → origin greeneye-mosquitto:9001 (Mosquitto WebSockets)
- * 외부 접속은 WSS(443) 도메인으로 받고, 내부로는 WS 9001로 전달된다.
+ * 우선 연결 안정화를 위해 TLS 없는 WS(80)로 edge 접속 후, tunnel이 내부 WS 9001로 전달한다.
  * Path는 Cloudflare Published route에서 비워둔 상태(전체 매칭) 기준.
  */
-static const char *MQTT_WSS_URI = "wss://mqtt-greeneye.gwon.run";
+static const char *MQTT_WS_URI = "ws://mqtt-greeneye.gwon.run:80";
 
 // ========== WiFi ==========
 static const char *WIFI_SSIDS[] = {"gwon", "iptime"};
@@ -24,34 +21,38 @@ static const char *WIFI_PASSWORDS[] = {"00000000", "Gwondev0323", ""};
 static const int WIFI_SSID_COUNT = 2;
 static const int WIFI_PASSWORD_COUNT = 3;
 
-// ========== 핀 ==========
+// ========== 핀 (RGB LED: R=25, G=26, B=27) ==========
 static const int PIN_IR = 34;
-static const int PIN_LED_RED = 25;
-static const int PIN_LED_YELLOW = 26;
-static const int PIN_LED_GREEN = 27;
+static const int PIN_LED_R = 25;
+static const int PIN_LED_G = 26;
+static const int PIN_LED_B = 27;
 static const bool IR_DETECTED_IS_LOW = true;
 
 static esp_mqtt_client_handle_t s_mqtt = nullptr;
 static volatile bool s_mqtt_connected = false;
 
 char pendingNickname[48] = "";
-enum { MODE_DEFAULT, MODE_READY_WAIT, MODE_CHECK_SHOW } deviceMode = MODE_DEFAULT;
+enum { MODE_DEFAULT, MODE_READY_WAIT, MODE_CHECK_SHOW, MODE_FULL } deviceMode = MODE_DEFAULT;
 unsigned long readyDeadlineMs = 0;
 unsigned long greenUntilMs = 0;
+unsigned long fullDetectStartMs = 0;
+bool fullSent = false;
 
-String topicReady() { return String("greeneye/") + MODULE_SERIAL + "/ready"; }
+String topicCmd() { return String("greeneye/") + MODULE_SERIAL + "/cmd"; }
 String topicStatus() { return String("greeneye/") + MODULE_SERIAL + "/status"; }
 
-void applyLeds(bool red, bool yellow, bool green) {
-  digitalWrite(PIN_LED_RED, red ? HIGH : LOW);
-  digitalWrite(PIN_LED_YELLOW, yellow ? HIGH : LOW);
-  digitalWrite(PIN_LED_GREEN, green ? HIGH : LOW);
+void applyRgb(bool red, bool green, bool blue) {
+  digitalWrite(PIN_LED_R, red ? HIGH : LOW);
+  digitalWrite(PIN_LED_G, green ? HIGH : LOW);
+  digitalWrite(PIN_LED_B, blue ? HIGH : LOW);
 }
 
 void enterDefaultIdle() {
   deviceMode = MODE_DEFAULT;
-  applyLeds(true, false, false);
+  applyRgb(true, false, false);  // RED
   pendingNickname[0] = '\0';
+  fullDetectStartMs = 0;
+  fullSent = false;
 }
 
 bool irDetected() {
@@ -82,7 +83,6 @@ bool connectWifiFromLists() {
         Serial.println(WiFi.localIP());
         return true;
       }
-      WiFi.disconnect(true);
       delay(300);
     }
   }
@@ -110,6 +110,7 @@ void publishDoc(const char *topic, StaticJsonDocument<N> &doc) {
     return;
   }
   buf[n] = '\0';
+  Serial.printf(">>> PUB %s %s\n", topic, buf);
   mqttPublishRaw(topic, buf);
 }
 
@@ -129,16 +130,30 @@ void publishStatusReadyTimeout() {
   Serial.println(">>> status READY (timeout)");
 }
 
+void publishStatusFull() {
+  StaticJsonDocument<160> doc;
+  doc["status"] = "FULL";
+  doc["moduleSerial"] = MODULE_SERIAL;
+  doc["userId"] = MODULE_SERIAL;
+  publishDoc(topicStatus().c_str(), doc);
+  Serial.println(">>> status FULL");
+}
+
 void armReady(const char *nick) {
+  if (deviceMode == MODE_FULL) {
+    Serial.println("ignore cmd: module is FULL");
+    return;
+  }
   strncpy(pendingNickname, nick, sizeof(pendingNickname) - 1);
   pendingNickname[sizeof(pendingNickname) - 1] = '\0';
   deviceMode = MODE_READY_WAIT;
   readyDeadlineMs = millis() + 10000UL;
-  applyLeds(false, true, false);
+  applyRgb(true, true, false);  // YELLOW = R + G
+  fullDetectStartMs = 0;
   Serial.printf(">>> READY 10s, userId=%s\n", pendingNickname);
 }
 
-void handleIncomingReadyPayload(const char *payload) {
+void handleIncomingCmdPayload(const char *payload) {
   StaticJsonDocument<256> doc;
   if (deserializeJson(doc, payload)) {
     Serial.println("JSON error");
@@ -162,12 +177,12 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
   switch ((esp_mqtt_event_id_t)event_id) {
     case MQTT_EVENT_CONNECTED:
-      Serial.println("MQTT_EVENT_CONNECTED (WSS)");
+      Serial.println("MQTT_EVENT_CONNECTED (WS)");
       s_mqtt_connected = true;
       {
-        String tr = topicReady();
-        esp_mqtt_client_subscribe(s_mqtt, tr.c_str(), 1);
-        Serial.printf("sub %s\n", tr.c_str());
+        String tc = topicCmd();
+        esp_mqtt_client_subscribe(s_mqtt, tc.c_str(), 1);
+        Serial.printf("sub %s\n", tc.c_str());
       }
       break;
 
@@ -198,8 +213,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
       dataBuf[dl] = '\0';
 
       Serial.printf("[MQTT] %s %s\n", topicBuf, dataBuf);
-      if (strstr(topicBuf, "/ready") != nullptr) {
-        handleIncomingReadyPayload(dataBuf);
+      if (strstr(topicBuf, "/cmd") != nullptr) {
+        handleIncomingCmdPayload(dataBuf);
       }
       break;
     }
@@ -228,20 +243,13 @@ void startMqttClient() {
   }
 
   esp_mqtt_client_config_t cfg = {};
-  cfg.uri = MQTT_WSS_URI;
+  cfg.uri = MQTT_WS_URI;
   cfg.client_id = MODULE_SERIAL;
   cfg.keepalive = 60;
   cfg.disable_clean_session = false;
   cfg.disable_auto_reconnect = false;
   cfg.reconnect_timeout_ms = 8000;
   cfg.buffer_size = 4096;
-  // Arduino 는 미리 빌드된 esp-tls 라서 "검증 완전 생략" 만으로는 실패하는 경우가 많음(번들 등 필요).
-  // Cloudflare WSS: CA 번들 + (필요 시) CN 스킵. 시계가 틀리면 핸드셰이크(-0x7780) 실패 → setup 에서 NTP.
-  cfg.use_global_ca_store = false;
-  cfg.crt_bundle_attach = esp_crt_bundle_attach;
-  cfg.cert_pem = nullptr;
-  cfg.skip_cert_common_name_check = true;
-
   s_mqtt = esp_mqtt_client_init(&cfg);
   esp_mqtt_client_register_event(s_mqtt, MQTT_EVENT_ANY, mqtt_event_handler, nullptr);
   esp_err_t err = esp_mqtt_client_start(s_mqtt);
@@ -253,9 +261,9 @@ void startMqttClient() {
 void setup() {
   Serial.begin(115200);
   pinMode(PIN_IR, INPUT_PULLUP);
-  pinMode(PIN_LED_RED, OUTPUT);
-  pinMode(PIN_LED_YELLOW, OUTPUT);
-  pinMode(PIN_LED_GREEN, OUTPUT);
+  pinMode(PIN_LED_R, OUTPUT);
+  pinMode(PIN_LED_G, OUTPUT);
+  pinMode(PIN_LED_B, OUTPUT);
   enterDefaultIdle();
 
   while (!connectWifiFromLists()) {
@@ -271,7 +279,7 @@ void setup() {
   }
   Serial.println();
   Serial.printf("time=%ld\n", (long)time(nullptr));
-  Serial.printf("MQTT WSS URI: %s\n", MQTT_WSS_URI);
+  Serial.printf("MQTT WS URI: %s\n", MQTT_WS_URI);
   startMqttClient();
 }
 
@@ -288,6 +296,27 @@ void loop() {
     enterDefaultIdle();
   }
 
+  if (deviceMode == MODE_DEFAULT) {
+    if (irDetected()) {
+      if (fullDetectStartMs == 0) {
+        fullDetectStartMs = millis();
+      } else if (!fullSent && millis() - fullDetectStartMs >= 10000UL) {
+        publishStatusFull();
+        deviceMode = MODE_FULL;
+        fullSent = true;
+        applyRgb(true, false, false);  // keep RED
+      }
+    } else {
+      fullDetectStartMs = 0;
+      fullSent = false;
+    }
+  }
+
+  if (deviceMode == MODE_FULL) {
+    delay(20);
+    return;
+  }
+
   if (deviceMode != MODE_READY_WAIT) {
     delay(20);
     return;
@@ -296,7 +325,7 @@ void loop() {
   if (irDetected()) {
     publishStatusCheck();
     deviceMode = MODE_CHECK_SHOW;
-    applyLeds(false, false, true);
+    applyRgb(false, true, false);  // GREEN
     greenUntilMs = millis() + 5000UL;
     pendingNickname[0] = '\0';
     delay(20);

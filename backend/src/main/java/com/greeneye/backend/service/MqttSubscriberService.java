@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class MqttSubscriberService implements Runnable {
 
     private final ModuleIotMqttHandler moduleIotMqttHandler;
+    private final MqttTrafficLogService mqttTrafficLogService;
 
     @Value("${mqtt.broker-url:tcp://localhost:1883}")
     private String brokerUrl;
@@ -89,6 +90,7 @@ public class MqttSubscriberService implements Runnable {
             @Override
             public void messageArrived(String topic, MqttMessage message) {
                 String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
+                mqttTrafficLogService.add("IN", topic, payload);
                 String[] parts = topic.split("/");
                 if (parts.length != 3 || !"greeneye".equals(parts[0])) {
                     log.warn("Unexpected MQTT topic {}", topic);

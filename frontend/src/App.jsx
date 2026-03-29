@@ -12,6 +12,7 @@ import Recognition from "./pages/features/Recognition";
 import Reward from "./pages/features/Reward";
 import Control from "./pages/features/Control";
 import Guide from "./pages/features/Guide";
+import Mosquitto from "./pages/Mosquitto";
 
 const theme = createTheme({
   palette: {
@@ -44,6 +45,7 @@ function App() {
           {/* 관리자 전용 페이지 */}
           <Route path="/db" element={<DB />} />
           <Route path="/manage" element={<Manage />} />
+          <Route path="/mosquitto" element={<Mosquitto />} />
 
           {/* 개별 기능 페이지 */}
           <Route path="/features/recognition" element={<Recognition />} />

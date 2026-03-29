@@ -102,6 +102,11 @@ const Map = () => {
       return;
     }
     const selected = sessionStorage.getItem(HELD_KEY) || "CAN";
+    const target = modules.find((x) => x.serialNumber === serialNumber);
+    if (target && String(target.status || "").toUpperCase() === "FULL") {
+      alert("해당 모듈은 FULL 상태라 선택할 수 없습니다.");
+      return;
+    }
     try {
       await apiFetch(`/modules/${serialNumber}/ready`, {
         method: "POST",
@@ -369,12 +374,14 @@ const Map = () => {
         >
           {modules.map((m) => (
             <Paper key={m.id} sx={{ p: { xs: 1, sm: 1.5 }, bgcolor: "rgba(255,255,255,0.05)", border: "1px solid rgba(124,255,114,0.2)" }}>
+              {/** FULL 모듈은 선택 불가 */}
               <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
                 <Typography sx={{ color: "#fff", fontSize: { xs: "0.72rem", sm: "0.875rem" }, wordBreak: "break-all" }}>
                   {m.serialNumber} · {m.type} · {m.status} · ({m.lat?.toFixed?.(5) ?? "-"}, {m.lon?.toFixed?.(5) ?? "-"})
                 </Typography>
                 <Button
                   size="small"
+                  disabled={String(m.status || "").toUpperCase() === "FULL"}
                   onClick={() => handleReady(m.serialNumber)}
                   sx={{ color: "#7CFF72", border: "1px solid rgba(124,255,114,0.4)", minWidth: 72, minHeight: 36 }}
                 >

@@ -11,6 +11,11 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class MqttPublisherService {
+    private final MqttTrafficLogService mqttTrafficLogService;
+
+    public MqttPublisherService(MqttTrafficLogService mqttTrafficLogService) {
+        this.mqttTrafficLogService = mqttTrafficLogService;
+    }
 
     @Value("${mqtt.broker-url:tcp://mosquitto:1883}")
     private String brokerUrl;
@@ -28,8 +33,10 @@ public class MqttPublisherService {
             MqttMessage message = new MqttMessage(payload.getBytes());
             message.setQos(1);
             client.publish(topic, message);
+            mqttTrafficLogService.add("OUT", topic, payload);
             client.disconnect();
         } catch (MqttException e) {
+            mqttTrafficLogService.add("OUT_ERR", topic, payload);
             log.error("MQTT publish failed. topic={}, payload={}", topic, payload, e);
         }
     }

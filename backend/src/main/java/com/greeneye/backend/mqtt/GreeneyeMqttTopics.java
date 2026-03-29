@@ -8,8 +8,8 @@ public final class GreeneyeMqttTopics {
     private GreeneyeMqttTopics() {}
 
     /** 백엔드 → 모듈: 버리기 시작(닉네임 JSON) */
-    public static String ready(String serialNumber) {
-        return "greeneye/" + serialNumber + "/ready";
+    public static String cmd(String serialNumber) {
+        return "greeneye/" + serialNumber + "/cmd";
     }
 
     /** 모듈 → 백엔드: READY 타임아웃 또는 CHECK 결과 */

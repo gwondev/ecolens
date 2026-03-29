@@ -126,7 +126,7 @@ public class ModuleController {
                 .build();
         disposalRecordRepository.save(record);
 
-        String topic = GreeneyeMqttTopics.ready(serialNumber);
+        String topic = GreeneyeMqttTopics.cmd(serialNumber);
         String payload = "{\"userId\":\"" + escapeJson(nickname) + "\"}";
         mqttPublisherService.publish(topic, payload);
 
