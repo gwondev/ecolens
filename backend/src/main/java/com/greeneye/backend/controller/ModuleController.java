@@ -56,7 +56,7 @@ public class ModuleController {
                 .lon(doubleOrDefault(body.get("lon"), 126.9228))
                 .type(stringOrDefault(body.get("type"), "GENERAL"))
                 .status("DEFAULT")
-                .totalDisposalCount(0)
+                .totalDisposalCount(Math.max(0, intOrDefault(body.get("totalDisposalCount"), 0)))
                 .lastHeartbeat(LocalDateTime.now())
                 .build();
         return moduleRepository.save(module);
@@ -161,6 +161,15 @@ public class ModuleController {
         }
     }
 
+    private Integer intOrDefault(Object raw, int fallback) {
+        if (raw == null) return fallback;
+        try {
+            return Integer.parseInt(raw.toString().trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
     @PutMapping("/{id}")
     @Transactional
     public Module updateModule(@PathVariable Long id, @RequestBody Map<String, Object> body) {
@@ -197,6 +206,17 @@ public class ModuleController {
                         "status must be one of: DEFAULT, READY, CHECK, FULL");
             }
             module.setStatus(st);
+        }
+        if (body.containsKey("totalDisposalCount")) {
+            module.setTotalDisposalCount(
+                    Math.max(
+                            0,
+                            intOrDefault(
+                                    body.get("totalDisposalCount"),
+                                    module.getTotalDisposalCount()
+                            )
+                    )
+            );
         }
         module.setLastHeartbeat(LocalDateTime.now());
         return moduleRepository.save(module);

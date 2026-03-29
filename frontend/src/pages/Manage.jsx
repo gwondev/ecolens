@@ -81,6 +81,7 @@ const Manage = () => {
     lon: "126.9228",
     type: "GENERAL",
     status: "DEFAULT",
+    totalDisposalCount: "0",
   });
   const [moduleDeleteTarget, setModuleDeleteTarget] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -126,6 +127,7 @@ const Manage = () => {
         lon: String(m.lon ?? "126.9228"),
         type: m.type ?? "GENERAL",
         status: m.status ?? "DEFAULT",
+        totalDisposalCount: String(m.totalDisposalCount ?? 0),
       });
     } else {
       setEditingModule(null);
@@ -136,6 +138,7 @@ const Manage = () => {
         lon: "126.9228",
         type: "GENERAL",
         status: "DEFAULT",
+        totalDisposalCount: "0",
       });
     }
     setModuleDialogOpen(true);
@@ -153,6 +156,7 @@ const Manage = () => {
         lon: Number(moduleForm.lon),
         type: moduleForm.type.trim().toUpperCase(),
         status: (moduleForm.status || "DEFAULT").trim().toUpperCase(),
+        totalDisposalCount: Math.max(0, Number(moduleForm.totalDisposalCount) || 0),
       };
       if (editingModule) {
         await apiFetch(`/modules/${editingModule.id}`, {
@@ -521,6 +525,15 @@ const Manage = () => {
             <TextField label="lon" value={moduleForm.lon} onChange={(e) => setModuleForm((f) => ({ ...f, lon: e.target.value }))} fullWidth sx={{ input: { color: "#fff" } }} />
           </Stack>
           <TextField label="type (PET/CAN/GENERAL/HAZARD)" value={moduleForm.type} onChange={(e) => setModuleForm((f) => ({ ...f, type: e.target.value }))} fullWidth sx={{ input: { color: "#fff" } }} />
+          <TextField
+            label="count (totalDisposalCount)"
+            type="number"
+            value={moduleForm.totalDisposalCount}
+            onChange={(e) => setModuleForm((f) => ({ ...f, totalDisposalCount: e.target.value }))}
+            fullWidth
+            sx={{ input: { color: "#fff" } }}
+            inputProps={{ min: 0 }}
+          />
           <FormControl fullWidth>
             <InputLabel sx={{ color: "rgba(255,255,255,0.7)" }}>모듈 상태</InputLabel>
             <Select

@@ -103,7 +103,7 @@ const Camera = () => {
             쓰레기 촬영 · 분류
           </Typography>
           <Typography sx={{ color: "rgba(255,255,255,0.72)", lineHeight: 1.75, px: 1 }}>
-            모바일은 카메라, PC는 파일 선택. Gemini Flash로 분류하고, 아래에서 직접 고를 수도 있습니다.
+            모바일은 카메라, PC는 파일 선택. AI로 분석하고, 아래에서 직접 고를 수도 있습니다.
           </Typography>
 
           <input
@@ -164,7 +164,7 @@ const Camera = () => {
             onClick={analyze}
             sx={{ bgcolor: "#1a2e1a", color: "#7CFF72", border: "1px solid rgba(124,255,114,0.4)", fontWeight: 800, minWidth: 220 }}
           >
-            {loading ? "분석 중…" : "Gemini로 분석"}
+            {loading ? "분석 중…" : "분석"}
           </Button>
 
           {result && (
