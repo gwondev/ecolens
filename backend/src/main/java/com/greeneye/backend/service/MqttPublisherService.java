@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class MqttPublisherService {
 
-    @Value("${mqtt.broker-url:tcp://gwon-mosquitto:1883}")
+    @Value("${mqtt.broker-url:tcp://mosquitto:1883}")
     private String brokerUrl;
 
     @Value("${mqtt.client-id:greeneye-backend}")

@@ -46,7 +46,7 @@ set +a
 : "${DB_PASSWORD:?prepare-env: DB_PASSWORD 가 $ROOT_ENV 에 없습니다}"
 
 DB_USERNAME="${DB_USERNAME:-gwon}"
-MQTT_BROKER_URL="${MQTT_BROKER_URL:-tcp://gwon-mosquitto:1883}"
+MQTT_BROKER_URL="${MQTT_BROKER_URL:-tcp://mosquitto:1883}"
 MQTT_CLIENT_ID="${MQTT_CLIENT_ID:-greeneye-backend}"
 VITE_API_BASE_URL="${VITE_API_BASE_URL:-/api}"
 

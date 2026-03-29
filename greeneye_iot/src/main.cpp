@@ -1,31 +1,37 @@
 #include <Arduino.h>
 #include <cstring>
 #include <WiFi.h>
-#include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <mqtt_client.h>
+#include <WiFiClientSecure.h>
+#include <esp_crt_bundle.h>
 
-// ========== 배포 시 모듈 고유번호만 수정 (DB modules.serial_number 와 동일) ==========
+// ========== 모듈 고유번호만 수정 (DB modules.serial_number) ==========
 static const char *MODULE_SERIAL = "g1";
 
-// ========== MQTT (백엔드 application.yaml greeneye.iot /api/iot/config 와 동일) ==========
-static const char *MQTT_HOST = "mqtt.greeneye.gwon.run";
-static const uint16_t MQTT_PORT = 1883;
+/**
+ * Cloudflare Tunnel: HTTP(S) → origin localhost:9001 (Mosquitto protocol websockets)
+ * ESP32는 Raw TCP 1883이 아니라 WSS로 같은 브로커에 붙는다.
+ * URI는 환경에 맞게 조정 (경로는 Mosquitto 기본 / 또는 /mqtt — 안 되면 둘 다 시도)
+ */
+// wss 기본 포트는 443 (:443 생략 가능). 경로는 Mosquitto·터널에 맞게 (/ 또는 /mqtt)
+static const char *MQTT_WSS_URI = "wss://mqtt.greeneye.gwon.run/mqtt";
 
-// ========== WiFi (SSID × 비번 순차 시도) ==========
+// ========== WiFi ==========
 static const char *WIFI_SSIDS[] = {"gwon", "iptime"};
 static const char *WIFI_PASSWORDS[] = {"00000000", "Gwondev0323", ""};
 static const int WIFI_SSID_COUNT = 2;
 static const int WIFI_PASSWORD_COUNT = 3;
 
-// ========== 핀: IR 34 / R·Y·G 각각 (공통 애노드·저항 가정, ACTIVE HIGH) ==========
+// ========== 핀 ==========
 static const int PIN_IR = 34;
 static const int PIN_LED_RED = 25;
 static const int PIN_LED_YELLOW = 26;
 static const int PIN_LED_GREEN = 27;
 static const bool IR_DETECTED_IS_LOW = true;
 
-WiFiClient wifiClient;
-PubSubClient mqtt(wifiClient);
+static esp_mqtt_client_handle_t s_mqtt = nullptr;
+static volatile bool s_mqtt_connected = false;
 
 char pendingNickname[48] = "";
 enum { MODE_DEFAULT, MODE_READY_WAIT, MODE_CHECK_SHOW } deviceMode = MODE_DEFAULT;
@@ -82,6 +88,18 @@ bool connectWifiFromLists() {
   return false;
 }
 
+static void mqttPublishRaw(const char *topic, const char *payload, int qos = 1) {
+  if (!s_mqtt || !s_mqtt_connected) {
+    Serial.println("mqttPublishRaw: not connected");
+    return;
+  }
+  int len = (int)strlen(payload);
+  int mid = esp_mqtt_client_publish(s_mqtt, topic, payload, len, qos, 0);
+  if (mid < 0) {
+    Serial.printf("publish failed topic=%s\n", topic);
+  }
+}
+
 template <size_t N>
 void publishDoc(const char *topic, StaticJsonDocument<N> &doc) {
   char buf[256];
@@ -90,7 +108,8 @@ void publishDoc(const char *topic, StaticJsonDocument<N> &doc) {
     Serial.println("publishDoc: buffer too small");
     return;
   }
-  mqtt.publish(topic, (const uint8_t *)buf, (unsigned int)n, false);
+  buf[n] = '\0';
+  mqttPublishRaw(topic, buf);
 }
 
 void publishStatusCheck() {
@@ -106,7 +125,7 @@ void publishStatusReadyTimeout() {
   doc["status"] = "READY";
   doc["userId"] = pendingNickname;
   publishDoc(topicStatus().c_str(), doc);
-  Serial.println(">>> status READY (timeout, no reward)");
+  Serial.println(">>> status READY (timeout)");
 }
 
 void armReady(const char *nick) {
@@ -118,22 +137,16 @@ void armReady(const char *nick) {
   Serial.printf(">>> READY 10s, userId=%s\n", pendingNickname);
 }
 
-void onMqttMessage(char *topic, byte *payload, unsigned int len) {
-  char buf[384];
-  if (len >= sizeof(buf)) len = sizeof(buf) - 1;
-  memcpy(buf, payload, len);
-  buf[len] = '\0';
-  Serial.printf("[MQTT] %s %s\n", topic, buf);
-
-  if (strstr(topic, "/ready") == nullptr) return;
-
+void handleIncomingReadyPayload(const char *payload) {
   StaticJsonDocument<256> doc;
-  if (deserializeJson(doc, buf)) {
+  if (deserializeJson(doc, payload)) {
     Serial.println("JSON error");
     return;
   }
   const char *uid = doc["userId"];
-  if (!uid || !uid[0]) uid = doc["nickname"];
+  if (!uid || !uid[0]) {
+    uid = doc["nickname"];
+  }
   if (!uid || !uid[0]) {
     Serial.println("no userId/nickname");
     return;
@@ -141,21 +154,94 @@ void onMqttMessage(char *topic, byte *payload, unsigned int len) {
   armReady(uid);
 }
 
-void connectMqtt() {
-  mqtt.setServer(MQTT_HOST, MQTT_PORT);
-  mqtt.setBufferSize(1024);
-  mqtt.setCallback(onMqttMessage);
-  while (!mqtt.connected()) {
-    Serial.println("MQTT connect...");
-    if (mqtt.connect(MODULE_SERIAL)) {
-      mqtt.subscribe(topicReady().c_str());
-      Serial.print("sub ");
-      Serial.println(topicReady());
-      return;
+static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data) {
+  esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
+  (void)handler_args;
+  (void)base;
+
+  switch ((esp_mqtt_event_id_t)event_id) {
+    case MQTT_EVENT_CONNECTED:
+      Serial.println("MQTT_EVENT_CONNECTED (WSS)");
+      s_mqtt_connected = true;
+      {
+        String tr = topicReady();
+        esp_mqtt_client_subscribe(s_mqtt, tr.c_str(), 1);
+        Serial.printf("sub %s\n", tr.c_str());
+      }
+      break;
+
+    case MQTT_EVENT_DISCONNECTED:
+      Serial.println("MQTT_EVENT_DISCONNECTED");
+      s_mqtt_connected = false;
+      break;
+
+    case MQTT_EVENT_SUBSCRIBED:
+      Serial.printf("MQTT_EVENT_SUBSCRIBED msg_id=%d\n", event->msg_id);
+      break;
+
+    case MQTT_EVENT_DATA: {
+      char topicBuf[160];
+      int tl = event->topic_len;
+      if (tl >= (int)sizeof(topicBuf)) {
+        tl = sizeof(topicBuf) - 1;
+      }
+      memcpy(topicBuf, event->topic, tl);
+      topicBuf[tl] = '\0';
+
+      char dataBuf[384];
+      int dl = event->data_len;
+      if (dl >= (int)sizeof(dataBuf)) {
+        dl = sizeof(dataBuf) - 1;
+      }
+      memcpy(dataBuf, event->data, dl);
+      dataBuf[dl] = '\0';
+
+      Serial.printf("[MQTT] %s %s\n", topicBuf, dataBuf);
+      if (strstr(topicBuf, "/ready") != nullptr) {
+        handleIncomingReadyPayload(dataBuf);
+      }
+      break;
     }
-    Serial.print("MQTT rc=");
-    Serial.println(mqtt.state());
-    delay(2000);
+
+    case MQTT_EVENT_ERROR:
+      if (event->error_handle) {
+        Serial.printf("MQTT_EVENT_ERROR type=%d tls=%d\n",
+                      (int)event->error_handle->error_type,
+                      event->error_handle->esp_tls_last_esp_err);
+      } else {
+        Serial.println("MQTT_EVENT_ERROR");
+      }
+      break;
+
+    default:
+      break;
+  }
+}
+
+void startMqttClient() {
+  if (s_mqtt) {
+    esp_mqtt_client_stop(s_mqtt);
+    esp_mqtt_client_destroy(s_mqtt);
+    s_mqtt = nullptr;
+    s_mqtt_connected = false;
+  }
+
+  esp_mqtt_client_config_t cfg = {};
+  cfg.uri = MQTT_WSS_URI;
+  cfg.client_id = MODULE_SERIAL;
+  cfg.keepalive = 60;
+  cfg.disable_clean_session = false;
+  cfg.disable_auto_reconnect = false;
+  cfg.reconnect_timeout_ms = 8000;
+  cfg.buffer_size = 4096;
+  // use_global_ca_store 만 켜면 Arduino에서 CA가 비어 있어 TLS 실패함 → 번들 사용
+  cfg.crt_bundle_attach = arduino_esp_crt_bundle_attach;
+
+  s_mqtt = esp_mqtt_client_init(&cfg);
+  esp_mqtt_client_register_event(s_mqtt, MQTT_EVENT_ANY, mqtt_event_handler, nullptr);
+  esp_err_t err = esp_mqtt_client_start(s_mqtt);
+  if (err != ESP_OK) {
+    Serial.printf("esp_mqtt_client_start err=%d\n", (int)err);
   }
 }
 
@@ -171,21 +257,27 @@ void setup() {
     Serial.println("WiFi retry 5s");
     delay(5000);
   }
-  connectMqtt();
+  Serial.printf("MQTT WSS URI: %s\n", MQTT_WSS_URI);
+  startMqttClient();
 }
 
 void loop() {
   if (WiFi.status() != WL_CONNECTED) {
-    while (!connectWifiFromLists()) delay(3000);
+    s_mqtt_connected = false;
+    while (!connectWifiFromLists()) {
+      delay(3000);
+    }
+    startMqttClient();
   }
-  if (!mqtt.connected()) connectMqtt();
-  mqtt.loop();
 
   if (deviceMode == MODE_CHECK_SHOW && millis() >= greenUntilMs) {
     enterDefaultIdle();
   }
 
-  if (deviceMode != MODE_READY_WAIT) return;
+  if (deviceMode != MODE_READY_WAIT) {
+    delay(20);
+    return;
+  }
 
   if (irDetected()) {
     publishStatusCheck();
@@ -193,6 +285,7 @@ void loop() {
     applyLeds(false, false, true);
     greenUntilMs = millis() + 5000UL;
     pendingNickname[0] = '\0';
+    delay(20);
     return;
   }
 
@@ -200,4 +293,5 @@ void loop() {
     publishStatusReadyTimeout();
     enterDefaultIdle();
   }
+  delay(20);
 }
