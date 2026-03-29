@@ -3,20 +3,20 @@
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include <mqtt_client.h>
+#include <time.h>
 
-// Arduino WiFiClientSecure 의 esp_crt_bundle.h 가 IDF 헤더와 이름이 겹쳐 SDK 심볼을 가림 → 전방 선언
+// Arduino WiFiClientSecure 의 esp_crt_bundle.h 가 IDF 헤더와 이름이 겹침 → SDK 번들 attach 만 전방 선언
 extern "C" esp_err_t esp_crt_bundle_attach(void *conf);
 
 // ========== 모듈 고유번호만 수정 (DB modules.serial_number) ==========
 static const char *MODULE_SERIAL = "g1";
 
 /**
- * Cloudflare Tunnel: HTTP(S) → origin localhost:9001 (Mosquitto protocol websockets)
- * ESP32는 Raw TCP 1883이 아니라 WSS로 같은 브로커에 붙는다.
- * URI는 환경에 맞게 조정 (경로는 Mosquitto 기본 / 또는 /mqtt — 안 되면 둘 다 시도)
+ * Cloudflare Tunnel: HTTP(S) → origin greeneye-mosquitto:9001 (Mosquitto WebSockets)
+ * 외부 접속은 WSS(443) 도메인으로 받고, 내부로는 WS 9001로 전달된다.
+ * Path는 Cloudflare Published route에서 비워둔 상태(전체 매칭) 기준.
  */
-// wss 기본 포트 443. 경로: Mosquitto 기본 WS는 / 인 경우 많음 → 안 되면 "/mqtt" 제거해 "wss://mqtt.greeneye.gwon.run" 만 시도
-static const char *MQTT_WSS_URI = "wss://mqtt.greeneye.gwon.run/mqtt";
+static const char *MQTT_WSS_URI = "wss://mqtt-greeneye.gwon.run";
 
 // ========== WiFi ==========
 static const char *WIFI_SSIDS[] = {"gwon", "iptime"};
@@ -235,11 +235,12 @@ void startMqttClient() {
   cfg.disable_auto_reconnect = false;
   cfg.reconnect_timeout_ms = 8000;
   cfg.buffer_size = 4096;
-  // esp-tls는 CA 번들·PEM·global store 등 "검증 수단"이 하나는 있어야 함 (전부 null 이면 SSL 설정 실패)
+  // Arduino 는 미리 빌드된 esp-tls 라서 "검증 완전 생략" 만으로는 실패하는 경우가 많음(번들 등 필요).
+  // Cloudflare WSS: CA 번들 + (필요 시) CN 스킵. 시계가 틀리면 핸드셰이크(-0x7780) 실패 → setup 에서 NTP.
   cfg.use_global_ca_store = false;
   cfg.crt_bundle_attach = esp_crt_bundle_attach;
   cfg.cert_pem = nullptr;
-  cfg.skip_cert_common_name_check = false;
+  cfg.skip_cert_common_name_check = true;
 
   s_mqtt = esp_mqtt_client_init(&cfg);
   esp_mqtt_client_register_event(s_mqtt, MQTT_EVENT_ANY, mqtt_event_handler, nullptr);
@@ -261,6 +262,15 @@ void setup() {
     Serial.println("WiFi retry 5s");
     delay(5000);
   }
+  // TLS 인증서 유효기간 검사에 시스템 시간 필요 — 미동기화 시 mbedtls 핸드셰이크 실패가 잦음
+  configTime(9 * 3600, 0, "pool.ntp.org", "time.google.com");
+  Serial.print("NTP sync");
+  for (int i = 0; i < 40 && time(nullptr) < 1700000000; i++) {
+    delay(250);
+    Serial.print(".");
+  }
+  Serial.println();
+  Serial.printf("time=%ld\n", (long)time(nullptr));
   Serial.printf("MQTT WSS URI: %s\n", MQTT_WSS_URI);
   startMqttClient();
 }
