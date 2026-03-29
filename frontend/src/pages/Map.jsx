@@ -3,6 +3,7 @@ import { Typography, Box, Paper, Stack, Button, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { getEffectiveUser, getEffectiveNickname } from "../services/auth";
 import { apiFetch } from "../services/api";
+import { keyframes } from "@emotion/react";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
@@ -10,6 +11,16 @@ import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 const MapView = lazy(() => import("./MapView.jsx"));
 
 const HELD_KEY = "greeneye.finalWasteType";
+const popAnim = keyframes`
+  0% { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
+  10% { transform: translate(-50%, -8px) scale(1); opacity: 1; }
+  60% { transform: translate(-50%, -30px) scale(1.05); opacity: 1; }
+  100% { transform: translate(-50%, -50px) scale(0.9); opacity: 0; }
+`;
+const ringAnim = keyframes`
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(2.1); opacity: 0; }
+`;
 
 const Map = () => {
   const navigate = useNavigate();
@@ -20,6 +31,8 @@ const Map = () => {
   const [userPos, setUserPos] = useState(null);
   const [geoMessage, setGeoMessage] = useState("");
   const [heldType, setHeldType] = useState(() => sessionStorage.getItem(HELD_KEY) || "");
+  const [myRewards, setMyRewards] = useState(0);
+  const [rewardBurst, setRewardBurst] = useState(false);
 
   useEffect(() => {
     if (!user?.oauthId) {
@@ -71,8 +84,20 @@ const Map = () => {
         } catch {
           /* 이미 시드됨 */
         }
-        const data = await apiFetch("/modules");
+        const [data, users] = await Promise.all([apiFetch("/modules"), apiFetch("/users")]);
         setModules(Array.isArray(data) ? data : []);
+        if (Array.isArray(users)) {
+          const nick = getEffectiveNickname() || user?.nickname;
+          const me = users.find((u) => u?.nickname === nick);
+          const nextRewards = Number(me?.nowRewards ?? 0);
+          setMyRewards((prev) => {
+            if (nextRewards > prev) {
+              setRewardBurst(true);
+              setTimeout(() => setRewardBurst(false), 950);
+            }
+            return nextRewards;
+          });
+        }
       } catch (e) {
         setError("모듈 목록을 불러오지 못했습니다.");
       } finally {
@@ -84,8 +109,20 @@ const Map = () => {
     // IoT 상태(DEFAULT/READY/CHECK/FULL)가 백엔드 DB에 반영되면 맵이 자동 반영되도록 주기 갱신
     const t = setInterval(async () => {
       try {
-        const data = await apiFetch("/modules");
+        const [data, users] = await Promise.all([apiFetch("/modules"), apiFetch("/users")]);
         setModules(Array.isArray(data) ? data : []);
+        if (Array.isArray(users)) {
+          const nick = getEffectiveNickname() || user?.nickname;
+          const me = users.find((u) => u?.nickname === nick);
+          const nextRewards = Number(me?.nowRewards ?? 0);
+          setMyRewards((prev) => {
+            if (nextRewards > prev) {
+              setRewardBurst(true);
+              setTimeout(() => setRewardBurst(false), 950);
+            }
+            return nextRewards;
+          });
+        }
       } catch {
         // polling 에러는 일시적일 수 있어 사용자 알림을 매번 띄우지 않는다
       }
@@ -129,6 +166,9 @@ const Map = () => {
         }),
       });
       alert("READY 전송 완료");
+      // 모듈 선택 후 들고 있던 쓰레기 분류는 소진된 것으로 간주하고 초기화
+      sessionStorage.removeItem(HELD_KEY);
+      setHeldType("");
       const data = await apiFetch("/modules");
       setModules(Array.isArray(data) ? data : []);
       navigate("/input");
@@ -151,6 +191,7 @@ const Map = () => {
   return (
     <Box
       sx={{
+        position: "relative",
         height: "100dvh",
         minHeight: "100vh",
         color: "#fff",
@@ -248,6 +289,63 @@ const Map = () => {
         )}
       </Stack>
 
+      {/* 가운데 상단: 현재 리워드 */}
+      <Box
+        sx={{
+          position: "absolute",
+          left: "50%",
+          top: { xs: 10, sm: 14 },
+          transform: "translateX(-50%)",
+          zIndex: 1400,
+          px: 1.6,
+          py: 0.8,
+          borderRadius: 999,
+          bgcolor: "rgba(124,255,114,0.13)",
+          border: "1px solid rgba(124,255,114,0.38)",
+          color: "#d9ffd2",
+          fontWeight: 900,
+          fontSize: { xs: "0.78rem", sm: "0.9rem" },
+          backdropFilter: "blur(4px)",
+          boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
+        }}
+      >
+        리워드 {myRewards}
+      </Box>
+      {rewardBurst && (
+        <>
+          <Box
+            sx={{
+              position: "absolute",
+              left: "50%",
+              top: { xs: 22, sm: 28 },
+              width: 26,
+              height: 26,
+              borderRadius: "50%",
+              border: "2px solid rgba(124,255,114,0.7)",
+              animation: `${ringAnim} 0.9s ease-out`,
+              zIndex: 1450,
+              pointerEvents: "none",
+            }}
+          />
+          <Box
+            sx={{
+              position: "absolute",
+              left: "50%",
+              top: { xs: 34, sm: 40 },
+              color: "#7CFF72",
+              fontWeight: 900,
+              fontSize: { xs: "1rem", sm: "1.2rem" },
+              textShadow: "0 4px 20px rgba(124,255,114,0.45)",
+              animation: `${popAnim} 0.95s ease-out`,
+              zIndex: 1451,
+              pointerEvents: "none",
+            }}
+          >
+            +1
+          </Box>
+        </>
+      )}
+
       {heldType && modules.length > modulesForMap.length && (
         <Alert
           severity="info"
@@ -264,6 +362,30 @@ const Map = () => {
         >
           선택 분류({heldType})에 맞는 통만 표시 중입니다.
         </Alert>
+      )}
+
+      {/* 가운데 하단: 들고 있는 분류 */}
+      {heldType && (
+        <Box
+          sx={{
+            position: "absolute",
+            left: "50%",
+            bottom: { xs: 92, sm: 102 },
+            transform: "translateX(-50%)",
+            zIndex: 1400,
+            px: 1.6,
+            py: 0.75,
+            borderRadius: 999,
+            bgcolor: "rgba(124,255,114,0.12)",
+            border: "1px solid rgba(124,255,114,0.34)",
+            color: "#d9ffd2",
+            fontWeight: 800,
+            fontSize: { xs: "0.72rem", sm: "0.85rem" },
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          인식/선택 분류: {heldType}
+        </Box>
       )}
 
       {geoMessage && (

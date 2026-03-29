@@ -27,7 +27,8 @@ static const int PIN_LED_R = 25;
 static const int PIN_LED_G = 26;
 static const int PIN_LED_B = 27;
 static const bool IR_DETECTED_IS_LOW = true;
-static const unsigned long FULL_DETECT_MS = 10000UL;  // spec: 10 seconds
+// FULL 오탐 방지: IR 연속 감지가 1시간 지속될 때만 FULL 전환
+static const unsigned long FULL_DETECT_MS = 60UL * 60UL * 1000UL;  // 1 hour
 
 static esp_mqtt_client_handle_t s_mqtt = nullptr;
 static volatile bool s_mqtt_connected = false;
