@@ -33,6 +33,7 @@ static const unsigned long FULL_DETECT_MS = 60UL * 60UL * 1000UL;  // 1 hour
 static const float FULL_NEAR_CM = 10.0f;
 static const float READY_DELTA_CM = 20.0f;  // READY 구간에서 기준 대비 20cm 이상 변화 시 CHECK
 static const unsigned long ULTRA_PING_INTERVAL_MS = 65;
+static const unsigned long ULTRA_LOG_INTERVAL_MS = 10000UL;  // 10s
 
 static esp_mqtt_client_handle_t s_mqtt = nullptr;
 static volatile bool s_mqtt_connected = false;
@@ -47,6 +48,7 @@ float readyBaselineCm = -1.0f;
 bool readyBaselineSet = false;
 
 static unsigned long s_lastUltraPingMs = 0;
+static unsigned long s_lastUltraLogMs = 0;
 static float s_lastDistCm = -1.0f;
 
 String topicCmd() { return String("greeneye/") + MODULE_SERIAL + "/cmd"; }
@@ -93,7 +95,8 @@ void updateUltrasonicSample() {
   }
   s_lastUltraPingMs = now;
   s_lastDistCm = measureDistanceCm();
-  if (s_lastDistCm >= 0) {
+  if (s_lastDistCm >= 0 && (now - s_lastUltraLogMs >= ULTRA_LOG_INTERVAL_MS)) {
+    s_lastUltraLogMs = now;
     Serial.printf("[ULTRA] dist=%.1f cm\n", s_lastDistCm);
   }
 }
@@ -293,7 +296,7 @@ void startMqttClient() {
   esp_mqtt_client_config_t cfg = {};
   cfg.uri = MQTT_WS_URI;
   cfg.client_id = MODULE_SERIAL;
-  cfg.keepalive = 60;
+  cfg.keepalive = 120;
   cfg.disable_clean_session = false;
   cfg.disable_auto_reconnect = false;
   cfg.reconnect_timeout_ms = 8000;

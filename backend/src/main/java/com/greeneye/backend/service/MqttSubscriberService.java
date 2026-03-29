@@ -5,7 +5,7 @@ import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -39,6 +39,7 @@ public class MqttSubscriberService implements Runnable {
 
     @PostConstruct
     public void start() {
+        log.info("MQTT subscriber thread start. brokerUrl={}, clientId={}", brokerUrl, subscriberClientId);
         thread = new Thread(this, "mqtt-subscriber");
         thread.setDaemon(true);
         thread.start();
@@ -77,11 +78,22 @@ public class MqttSubscriberService implements Runnable {
         disconnectQuietly();
         client = new MqttClient(brokerUrl, subscriberClientId);
         MqttConnectOptions options = new MqttConnectOptions();
-        options.setAutomaticReconnect(false);
-        options.setCleanSession(true);
+        options.setAutomaticReconnect(true);
+        options.setCleanSession(false);
         options.setConnectionTimeout(10);
+        options.setKeepAliveInterval(30);
 
-        client.setCallback(new MqttCallback() {
+        client.setCallback(new MqttCallbackExtended() {
+            @Override
+            public void connectComplete(boolean reconnect, String serverURI) {
+                log.info("MQTT subscriber connected. reconnect={}, uri={}", reconnect, serverURI);
+                try {
+                    subscribeTopics();
+                } catch (Exception e) {
+                    log.warn("MQTT subscriber subscribe failed after connect", e);
+                }
+            }
+
             @Override
             public void connectionLost(Throwable cause) {
                 log.warn("MQTT subscriber connection lost", cause);
@@ -89,19 +101,23 @@ public class MqttSubscriberService implements Runnable {
 
             @Override
             public void messageArrived(String topic, MqttMessage message) {
-                String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
-                mqttTrafficLogService.add("IN", topic, payload);
-                String[] parts = topic.split("/");
-                if (parts.length != 3 || !"greeneye".equals(parts[0])) {
-                    log.warn("Unexpected MQTT topic {}", topic);
-                    return;
-                }
-                String serial = parts[1];
-                String suffix = parts[2];
-                if ("status".equals(suffix)) {
-                    moduleIotMqttHandler.handleStatusPayload(serial, payload);
-                } else if ("events".equals(suffix)) {
-                    moduleIotMqttHandler.handleEventsPayload(serial, payload);
+                try {
+                    String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
+                    mqttTrafficLogService.add("IN", topic, payload);
+                    String[] parts = topic.split("/");
+                    if (parts.length != 3 || !"greeneye".equals(parts[0])) {
+                        log.warn("Unexpected MQTT topic {}", topic);
+                        return;
+                    }
+                    String serial = parts[1];
+                    String suffix = parts[2];
+                    if ("status".equals(suffix)) {
+                        moduleIotMqttHandler.handleStatusPayload(serial, payload);
+                    } else if ("events".equals(suffix)) {
+                        moduleIotMqttHandler.handleEventsPayload(serial, payload);
+                    }
+                } catch (Exception e) {
+                    log.error("MQTT subscriber message handling failed. topic={}", topic, e);
                 }
             }
 
@@ -113,14 +129,21 @@ public class MqttSubscriberService implements Runnable {
 
         log.info("MQTT subscriber connecting to {}", brokerUrl);
         client.connect(options);
-        client.subscribe("greeneye/+/status", 1);
-        client.subscribe("greeneye/+/events", 1);
-        log.info("MQTT subscriber subscribed greeneye/+/status, greeneye/+/events");
+        subscribeTopics();
 
         while (running.get() && client.isConnected()) {
             Thread.sleep(500);
         }
         disconnectQuietly();
+    }
+
+    private void subscribeTopics() throws MqttException {
+        if (client == null || !client.isConnected()) {
+            return;
+        }
+        client.subscribe("greeneye/+/status", 1);
+        client.subscribe("greeneye/+/events", 1);
+        log.info("MQTT subscriber subscribed greeneye/+/status, greeneye/+/events");
     }
 
     private void disconnectQuietly() {
