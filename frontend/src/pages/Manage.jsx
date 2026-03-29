@@ -44,6 +44,8 @@ const cellBody = {
   borderColor: "rgba(255,255,255,0.08)",
 };
 
+const MODULE_STATUS_OPTIONS = ["DEFAULT", "READY", "CHECK", "FULL"];
+
 const Manage = () => {
   const navigate = useNavigate();
   const currentUser = getEffectiveUser();
@@ -145,7 +147,7 @@ const Manage = () => {
         lat: Number(moduleForm.lat),
         lon: Number(moduleForm.lon),
         type: moduleForm.type.trim().toUpperCase(),
-        status: moduleForm.status.trim(),
+        status: (moduleForm.status || "DEFAULT").trim().toUpperCase(),
       };
       if (editingModule) {
         await apiFetch(`/modules/${editingModule.id}`, {
@@ -486,7 +488,21 @@ const Manage = () => {
             <TextField label="lon" value={moduleForm.lon} onChange={(e) => setModuleForm((f) => ({ ...f, lon: e.target.value }))} fullWidth sx={{ input: { color: "#fff" } }} />
           </Stack>
           <TextField label="type (PET/CAN/GENERAL/HAZARD)" value={moduleForm.type} onChange={(e) => setModuleForm((f) => ({ ...f, type: e.target.value }))} fullWidth sx={{ input: { color: "#fff" } }} />
-          <TextField label="status" value={moduleForm.status} onChange={(e) => setModuleForm((f) => ({ ...f, status: e.target.value }))} fullWidth sx={{ input: { color: "#fff" } }} />
+          <FormControl fullWidth>
+            <InputLabel sx={{ color: "rgba(255,255,255,0.7)" }}>모듈 상태</InputLabel>
+            <Select
+              label="모듈 상태"
+              value={MODULE_STATUS_OPTIONS.includes((moduleForm.status || "").toUpperCase()) ? (moduleForm.status || "DEFAULT").toUpperCase() : "DEFAULT"}
+              onChange={(e) => setModuleForm((f) => ({ ...f, status: e.target.value }))}
+              sx={{ color: "#fff" }}
+            >
+              {MODULE_STATUS_OPTIONS.map((st) => (
+                <MenuItem key={st} value={st}>
+                  {st}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setModuleDialogOpen(false)} disabled={saving}>

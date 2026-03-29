@@ -28,7 +28,7 @@ public class Module {
 
     @Builder.Default
     @Column(name = "status", nullable = false, length = 10)
-    private String status = "DEFAULT"; // DEFAULT, READY, CHECK
+    private String status = "DEFAULT"; // DEFAULT, READY, CHECK, FULL
 
     @Builder.Default
     @Column(name = "total_disposal_count", nullable = false)
