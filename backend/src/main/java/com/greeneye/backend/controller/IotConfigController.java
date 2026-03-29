@@ -18,7 +18,7 @@ public class IotConfigController {
     @Value("${greeneye.iot.mqtt-host}")
     private String mqttHost;
 
-    @Value("${greeneye.iot.mqtt-port:1883}")
+    @Value("${greeneye.iot.mqtt-port:80}")
     private int mqttPort;
 
     @GetMapping("/config")
@@ -26,6 +26,7 @@ public class IotConfigController {
         return Map.of(
                 "mqttHost", mqttHost,
                 "mqttPort", mqttPort,
+                "mqttScheme", "ws",
                 "mqttTls", false
         );
     }

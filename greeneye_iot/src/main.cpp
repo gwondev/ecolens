@@ -27,7 +27,7 @@ static const int PIN_LED_R = 25;
 static const int PIN_LED_G = 26;
 static const int PIN_LED_B = 27;
 static const bool IR_DETECTED_IS_LOW = true;
-static const unsigned long FULL_DETECT_MS = 10UL * 60UL * 1000UL;  // 10 minutes
+static const unsigned long FULL_DETECT_MS = 10000UL;  // spec: 10 seconds
 
 static esp_mqtt_client_handle_t s_mqtt = nullptr;
 static volatile bool s_mqtt_connected = false;
@@ -63,6 +63,7 @@ bool irDetected() {
 
 bool connectWifiFromLists() {
   WiFi.mode(WIFI_STA);
+  Serial.println("[NET] WiFi connect start");
   for (int s = 0; s < WIFI_SSID_COUNT; s++) {
     for (int p = 0; p < WIFI_PASSWORD_COUNT; p++) {
       Serial.printf("WiFi: SSID=\"%s\" ", WIFI_SSIDS[s]);
@@ -87,6 +88,7 @@ bool connectWifiFromLists() {
       delay(300);
     }
   }
+  Serial.println("[NET] WiFi connect failed (all candidates)");
   return false;
 }
 
@@ -176,6 +178,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
   (void)base;
 
   switch ((esp_mqtt_event_id_t)event_id) {
+    case MQTT_EVENT_BEFORE_CONNECT:
+      Serial.println("MQTT_EVENT_BEFORE_CONNECT");
+      break;
+
     case MQTT_EVENT_CONNECTED:
       Serial.println("MQTT_EVENT_CONNECTED (WS)");
       s_mqtt_connected = true;
@@ -253,6 +259,7 @@ void startMqttClient() {
   cfg.disable_auto_reconnect = false;
   cfg.reconnect_timeout_ms = 8000;
   cfg.buffer_size = 4096;
+  Serial.printf("[MQTT] client start uri=%s id=%s\n", cfg.uri, cfg.client_id);
   s_mqtt = esp_mqtt_client_init(&cfg);
   esp_mqtt_client_register_event(s_mqtt, MQTT_EVENT_ANY, mqtt_event_handler, nullptr);
   esp_err_t err = esp_mqtt_client_start(s_mqtt);

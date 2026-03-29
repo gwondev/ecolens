@@ -9,6 +9,7 @@ import com.greeneye.backend.repository.ModuleRepository;
 import com.greeneye.backend.repository.RewardHistoryRepository;
 import com.greeneye.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ModuleDisposalService {
 
     private final ModuleRepository moduleRepository;
@@ -54,6 +56,7 @@ public class ModuleDisposalService {
         module.setStatus("CHECK");
         module.setLastHeartbeat(LocalDateTime.now());
         moduleRepository.save(module);
+        log.info("module status CHECK serial={} user={}", serialNumber, nickname);
 
         RewardHistory history = rewardHistoryRepository.findByDisposalRecord(record)
                 .orElseGet(() -> {
@@ -68,6 +71,7 @@ public class ModuleDisposalService {
 
         module.setStatus("DEFAULT");
         moduleRepository.save(module);
+        log.info("module status DEFAULT serial={} after CHECK", serialNumber);
 
         return Map.of(
                 "ok", true,
@@ -86,6 +90,7 @@ public class ModuleDisposalService {
         module.setStatus("DEFAULT");
         module.setLastHeartbeat(LocalDateTime.now());
         moduleRepository.save(module);
+        log.info("module status DEFAULT serial={}", serialNumber);
     }
 
     @Transactional
@@ -97,6 +102,7 @@ public class ModuleDisposalService {
         module.setStatus("FULL");
         module.setLastHeartbeat(LocalDateTime.now());
         moduleRepository.save(module);
+        log.info("module status FULL serial={}", serialNumber);
     }
 
     /**
@@ -126,5 +132,6 @@ public class ModuleDisposalService {
         module.setStatus("DEFAULT");
         module.setLastHeartbeat(LocalDateTime.now());
         moduleRepository.save(module);
+        log.info("module status DEFAULT serial={} after READY timeout", serialNumber);
     }
 }

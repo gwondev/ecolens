@@ -39,7 +39,7 @@ greeneye:
   dev-user:
     enabled: ${GREENEYE_DEV_USER_ENABLED:false}
     oauth-id: ${GREENEYE_DEV_USER_OAUTH_ID:dev-local-greeneye}
-  # 외부 IoT(ESP32) 공개 브로커 — /api/iot/config 에 그대로 노출. Cloudflare는 TCP 1883 프록시 불가 → DNS only A레코드 권장
+  # 외부 IoT(ESP32) 공개 브로커 정보 (/api/iot/config 노출): Cloudflare Tunnel WebSocket 경로 기준
   iot:
-    mqtt-host: mqtt.greeneye.gwon.run
-    mqtt-port: 1883
+    mqtt-host: mqtt-greeneye.gwon.run
+    mqtt-port: 80

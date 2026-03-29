@@ -80,6 +80,18 @@ const Map = () => {
       }
     };
     run();
+
+    // IoT 상태(DEFAULT/READY/CHECK/FULL)가 백엔드 DB에 반영되면 맵이 자동 반영되도록 주기 갱신
+    const t = setInterval(async () => {
+      try {
+        const data = await apiFetch("/modules");
+        setModules(Array.isArray(data) ? data : []);
+      } catch {
+        // polling 에러는 일시적일 수 있어 사용자 알림을 매번 띄우지 않는다
+      }
+    }, 3000);
+
+    return () => clearInterval(t);
   }, [user?.oauthId]);
 
   const requestGeoAgain = () => {
