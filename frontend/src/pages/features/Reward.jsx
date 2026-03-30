@@ -68,9 +68,9 @@ const Reward = () => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#E8D35C",
-                background: "linear-gradient(135deg, rgba(255,215,80,0.15), rgba(57,255,20,0.06))",
-                border: "1px solid rgba(255,215,80,0.28)",
+                color: "#7CFF72",
+                background: "linear-gradient(135deg, rgba(57,255,20,0.14), rgba(57,255,20,0.06))",
+                border: "1px solid rgba(124,255,114,0.3)",
                 backgroundSize: "200% 100%",
                 animation: `${shine} 4s linear infinite`,
               }}
@@ -113,7 +113,7 @@ const Reward = () => {
                     gap: 1.25,
                     alignItems: "flex-start",
                     pl: 1,
-                    borderLeft: "3px solid rgba(232,211,92,0.55)",
+                    borderLeft: "3px solid rgba(124,255,114,0.45)",
                     py: 0.25,
                   }}
                 >

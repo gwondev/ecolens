@@ -12,7 +12,7 @@ const glow = keyframes`
 
 const bullets = [
   "촬영한 폐기물을 AI가 종류까지 판별합니다.",
-  "결과에 맞는 가까운 수거함과 배출 팁을 보여 줍니다.",
+  "결과에 맞는 가까운 수거함과 배출 방법을 안내합니다다.",
 ];
 
 const SmartDisposal = () => {
@@ -78,10 +78,10 @@ const SmartDisposal = () => {
 
           <Stack spacing={0.75}>
             <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: "-0.02em" }}>
-              AI 촬영 · 분리배출 안내
+              AI 분리배출 안내
             </Typography>
             <Typography sx={{ color: "#7CFF72", fontWeight: 600, fontSize: "0.95rem" }}>
-              Gemini · 지도 연동
+              AI 분석석 · 지도 연동
             </Typography>
           </Stack>
 
