@@ -32,6 +32,12 @@ const steps = [
     icon: <DeleteOutlineRoundedIcon sx={{ fontSize: 32, color: "#7CFF72" }} />,
     body: "「버리기」를 누르고 안내대로 버립니다.",
   },
+  {
+    n: 5,
+    title: "리워드 활용",
+    icon: <StorefrontRoundedIcon sx={{ fontSize: 32, color: "#7CFF72" }} />,
+    body: "적립한 리워드는 리워드마켓에서 다양한 상생 혜택으로 교환할 수 있습니다.",
+  },
 ];
 
 const MapGuide = () => {
@@ -106,58 +112,40 @@ const MapGuide = () => {
         </Stack>
 
         <Box sx={{ mt: 3, display: "flex", justifyContent: "center" }}>
-          <Stack spacing={1.2} sx={{ width: "100%", maxWidth: 520 }}>
-            <Paper
-              elevation={0}
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} justifyContent="center" sx={{ width: "100%", maxWidth: 520 }}>
+            <Button
+              variant="contained"
+              size="large"
+              onClick={() => navigate("/map")}
               sx={{
-                p: { xs: 1.4, sm: 1.8 },
-                borderRadius: 2,
-                border: "1px solid rgba(124,255,114,0.24)",
-                bgcolor: "rgba(124,255,114,0.08)",
+                px: 3.5,
+                py: 1.25,
+                borderRadius: 999,
+                fontWeight: 800,
+                bgcolor: "#7CFF72",
+                color: "#0a0f0a",
+                textTransform: "none",
+                "&:hover": { bgcolor: "#9dff92" },
               }}
             >
-              <Typography sx={{ fontWeight: 800, color: "#7CFF72", mb: 0.5, fontSize: { xs: "0.86rem", sm: "0.95rem" } }}>
-                리워드마켓(상생)
-              </Typography>
-              <Typography sx={{ color: "rgba(255,255,255,0.84)", fontSize: { xs: "0.8rem", sm: "0.88rem" }, lineHeight: 1.55 }}>
-                적립한 리워드는 전통시장 상생형 교환(온누리상품권 등)에 사용할 수 있습니다.
-              </Typography>
-            </Paper>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} justifyContent="center">
-              <Button
-                variant="contained"
-                size="large"
-                onClick={() => navigate("/map")}
-                sx={{
-                  px: 3.5,
-                  py: 1.25,
-                  borderRadius: 999,
-                  fontWeight: 800,
-                  bgcolor: "#7CFF72",
-                  color: "#0a0f0a",
-                  textTransform: "none",
-                  "&:hover": { bgcolor: "#9dff92" },
-                }}
-              >
-                지도로
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<StorefrontRoundedIcon />}
-                onClick={() => navigate("/reward_market")}
-                sx={{
-                  px: 3.2,
-                  py: 1.15,
-                  borderRadius: 999,
-                  fontWeight: 800,
-                  color: "#7CFF72",
-                  borderColor: "rgba(124,255,114,0.45)",
-                  textTransform: "none",
-                }}
-              >
-                리워드마켓
-              </Button>
-            </Stack>
+              지도로
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<StorefrontRoundedIcon />}
+              onClick={() => navigate("/reward_market")}
+              sx={{
+                px: 3.2,
+                py: 1.15,
+                borderRadius: 999,
+                fontWeight: 800,
+                color: "#7CFF72",
+                borderColor: "rgba(124,255,114,0.45)",
+                textTransform: "none",
+              }}
+            >
+              리워드마켓
+            </Button>
           </Stack>
         </Box>
       </Container>

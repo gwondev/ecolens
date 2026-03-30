@@ -241,9 +241,9 @@ const Map = () => {
         justifyContent="space-between"
         alignItems="center"
         spacing={1}
-        sx={{ flexShrink: 0, mb: 1.1, flexWrap: "wrap", rowGap: 1 }}
+        sx={{ flexShrink: 0, mb: 1.1, pr: { xs: 0, sm: 0 } }}
       >
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0, flexWrap: "wrap" }}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0, flexWrap: "wrap", pr: { xs: 18, sm: 30 } }}>
           <Typography
             variant="h5"
             sx={{
@@ -278,46 +278,56 @@ const Map = () => {
             이용방법
           </Button>
         </Stack>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Box
-            sx={{
-              px: { xs: 1.2, sm: 1.4 },
-              py: { xs: 0.45, sm: 0.55 },
-              minHeight: { xs: 34, sm: 38 },
-              borderRadius: 999,
-              border: "1px solid rgba(124,255,114,0.26)",
-              background: "rgba(0,0,0,0.76)",
-              color: "#7CFF72",
-              fontWeight: 900,
-              fontSize: { xs: "0.78rem", sm: "0.84rem" },
-              display: "flex",
-              alignItems: "center",
-              whiteSpace: "nowrap",
-            }}
-          >
-            현재 리워드 {myRewards}
-          </Box>
-          <Button
-            size="small"
-            variant="contained"
-            startIcon={<StorefrontRoundedIcon sx={{ fontSize: 16 }} />}
-            onClick={() => navigate("/reward_market")}
-            sx={{
-              minHeight: { xs: 34, sm: 38 },
-              borderRadius: 999,
-              px: { xs: 1.2, sm: 1.35 },
-              fontSize: { xs: "0.72rem", sm: "0.78rem" },
-              fontWeight: 800,
-              textTransform: "none",
-              bgcolor: "#7CFF72",
-              color: "#0a0f0a",
-              "&:hover": { bgcolor: "#9dff92" },
-              whiteSpace: "nowrap",
-            }}
-          >
-            리워드마켓
-          </Button>
-        </Stack>
+      </Stack>
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        sx={{
+          position: "absolute",
+          right: { xs: 8, sm: 14 },
+          top: { xs: 10, sm: 14 },
+          zIndex: 1410,
+        }}
+      >
+        <Box
+          sx={{
+            px: { xs: 1.2, sm: 1.4 },
+            py: { xs: 0.45, sm: 0.55 },
+            minHeight: { xs: 34, sm: 38 },
+            borderRadius: 999,
+            border: "1px solid rgba(124,255,114,0.26)",
+            background: "rgba(0,0,0,0.86)",
+            color: "#7CFF72",
+            fontWeight: 900,
+            fontSize: { xs: "0.74rem", sm: "0.84rem" },
+            display: "flex",
+            alignItems: "center",
+            whiteSpace: "nowrap",
+          }}
+        >
+          현재 리워드 {myRewards}
+        </Box>
+        <Button
+          size="small"
+          variant="contained"
+          startIcon={<StorefrontRoundedIcon sx={{ fontSize: 16 }} />}
+          onClick={() => navigate("/reward_market")}
+          sx={{
+            minHeight: { xs: 34, sm: 38 },
+            borderRadius: 999,
+            px: { xs: 1.2, sm: 1.35 },
+            fontSize: { xs: "0.72rem", sm: "0.78rem" },
+            fontWeight: 800,
+            textTransform: "none",
+            bgcolor: "#7CFF72",
+            color: "#0a0f0a",
+            "&:hover": { bgcolor: "#9dff92" },
+            whiteSpace: "nowrap",
+          }}
+        >
+          리워드마켓
+        </Button>
       </Stack>
       {rewardBurst && (
         <>
