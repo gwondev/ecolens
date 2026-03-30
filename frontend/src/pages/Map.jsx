@@ -255,28 +255,6 @@ const Map = () => {
           >
             반가워요, <Box component="span" sx={{ color: "#7CFF72" }}>{displayName}</Box>님
           </Typography>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<MenuBookRoundedIcon sx={{ fontSize: 16 }} />}
-            onClick={() => navigate("/map/guide")}
-            sx={{
-              color: "#7CFF72",
-              borderColor: "rgba(124,255,114,0.45)",
-              fontWeight: 700,
-              textTransform: "none",
-              borderRadius: 999,
-              py: { xs: 0.45, sm: 0.55 },
-              px: { xs: 1.2, sm: 1.35 },
-              minHeight: { xs: 34, sm: 38 },
-              fontSize: { xs: "0.72rem", sm: "0.78rem" },
-              lineHeight: 1.1,
-              bgcolor: "rgba(0,0,0,0.28)",
-              whiteSpace: "nowrap",
-            }}
-          >
-            이용방법
-          </Button>
         </Stack>
       </Stack>
       <Stack
@@ -585,20 +563,67 @@ const Map = () => {
           gap: 1,
         }}
       >
-        <Stack direction="row" spacing={1.2} alignItems="center" sx={{ width: { xs: "100%", sm: "auto" }, justifyContent: "center" }}>
+        <Stack
+          direction="row"
+          spacing={1.1}
+          alignItems="center"
+          sx={{ width: "100%", justifyContent: "center" }}
+        >
+          <Button
+            variant="outlined"
+            size="large"
+            startIcon={<MenuBookRoundedIcon sx={{ fontSize: { xs: 24, sm: 28 } }} />}
+            onClick={() => navigate("/map/guide")}
+            sx={{
+              px: { xs: 2, sm: 3.2 },
+              py: { xs: 1.5, sm: 1.75 },
+              width: "50%",
+              minWidth: 0,
+              borderRadius: 999,
+              fontSize: { xs: "0.9rem", sm: "1.02rem" },
+              fontWeight: 900,
+              minHeight: { xs: 48, sm: 56 },
+              letterSpacing: "-0.02em",
+              color: "#7CFF72",
+              borderColor: "rgba(124,255,114,0.45)",
+              backgroundImage: "linear-gradient(120deg, rgba(124,255,114,0.1) 0%, rgba(157,255,146,0.14) 50%, rgba(124,255,114,0.1) 100%)",
+              backgroundSize: "180% 100%",
+              position: "relative",
+              overflow: "hidden",
+              animation: `${ctaPulse} 2.1s ease-in-out infinite`,
+              textTransform: "none",
+              "&::after": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                width: "35%",
+                background: "linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.26), rgba(255,255,255,0))",
+                transform: "translateX(-120%)",
+                animation: `${ctaShine} 2.6s ease-in-out infinite`,
+              },
+              "&:hover": {
+                borderColor: "rgba(124,255,114,0.65)",
+                bgcolor: "rgba(124,255,114,0.12)",
+                transform: "translateY(-1px) scale(1.02)",
+                boxShadow: "0 18px 54px rgba(124,255,114,0.3)",
+              },
+            }}
+          >
+            이용방법
+          </Button>
           <Button
             variant="contained"
             size="large"
             startIcon={<PhotoCameraRoundedIcon sx={{ fontSize: { xs: 24, sm: 28 } }} />}
             onClick={() => navigate("/camera")}
             sx={{
-              px: { xs: 3, sm: 6 },
+              px: { xs: 2, sm: 3.2 },
               py: { xs: 1.5, sm: 1.75 },
-              width: { xs: "100%", sm: "auto" },
-              maxWidth: { xs: 400, sm: "none" },
-              minWidth: { xs: "unset", sm: 300 },
+              width: "50%",
+              minWidth: 0,
               borderRadius: 999,
-              fontSize: { xs: "0.95rem", sm: "1.05rem" },
+              fontSize: { xs: "0.9rem", sm: "1.02rem" },
               fontWeight: 900,
               minHeight: { xs: 48, sm: 56 },
               letterSpacing: "-0.02em",
