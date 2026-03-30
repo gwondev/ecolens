@@ -241,7 +241,7 @@ const Map = () => {
         justifyContent="space-between"
         alignItems="center"
         spacing={1}
-        sx={{ flexShrink: 0, mb: 1.1, pr: { xs: 0, sm: 0 } }}
+        sx={{ flexShrink: 0, mb: 1.1, pr: { xs: 0, sm: 0 }, pt: { xs: 0.75, sm: 0.55 } }}
       >
         <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0, flexWrap: "wrap", pr: { xs: 18, sm: 30 } }}>
           <Typography
@@ -264,7 +264,7 @@ const Map = () => {
         sx={{
           position: "absolute",
           right: { xs: 8, sm: 14 },
-          top: { xs: 10, sm: 14 },
+          top: { xs: 14, sm: 18 },
           zIndex: 1410,
         }}
       >
@@ -400,7 +400,7 @@ const Map = () => {
         sx={{
           flex: 1,
           minHeight: 0,
-          mt: { xs: 0.4, sm: 0.6 },
+          mt: { xs: 2.1, sm: 1.35 },
           position: "relative",
           borderRadius: 3,
           overflow: "hidden",
@@ -555,7 +555,7 @@ const Map = () => {
       <Box
         sx={{
           flexShrink: 0,
-          pt: 2,
+          pt: { xs: 2.2, sm: 2 },
           pb: 1,
           display: "flex",
           flexDirection: "column",
@@ -565,9 +565,9 @@ const Map = () => {
       >
         <Stack
           direction="row"
-          spacing={1.1}
+          spacing={{ xs: 1.4, sm: 1.2 }}
           alignItems="center"
-          sx={{ width: "100%", justifyContent: "center" }}
+          sx={{ width: "100%", justifyContent: "center", px: { xs: 0.8, sm: 0.4 }, mt: { xs: 0.4, sm: 0.2 }, mb: { xs: 0.35, sm: 0.2 } }}
         >
           <Button
             variant="outlined"
