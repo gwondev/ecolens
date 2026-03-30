@@ -7,6 +7,7 @@ import { keyframes } from "@emotion/react";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
+import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 
 const MapView = lazy(() => import("./MapView.jsx"));
 
@@ -36,15 +37,6 @@ const ctaShine = keyframes`
   20% { opacity: 0.35; }
   100% { transform: translateX(220%); opacity: 0; }
 `;
-const rewardRingBig = keyframes`
-  0% { transform: translate(-50%, -50%) scale(0.35); opacity: 0.95; }
-  100% { transform: translate(-50%, -50%) scale(5.2); opacity: 0; }
-`;
-const rewardSpark = keyframes`
-  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
-  20% { opacity: 1; }
-  100% { transform: translate(-50%, -146px) scale(1.55); opacity: 0; }
-`;
 
 const Map = () => {
   const navigate = useNavigate();
@@ -57,7 +49,6 @@ const Map = () => {
   const [heldType, setHeldType] = useState(() => sessionStorage.getItem(HELD_KEY) || "");
   const [myRewards, setMyRewards] = useState(0);
   const [rewardBurst, setRewardBurst] = useState(false);
-  const [rewardClickBurst, setRewardClickBurst] = useState(false);
 
   useEffect(() => {
     if (!user?.oauthId) {
@@ -229,14 +220,6 @@ const Map = () => {
   }, [heldType]);
 
   const hasHeldWaste = Boolean((heldType || sessionStorage.getItem(HELD_KEY) || "").trim());
-  const triggerRewardClickBurst = () => {
-    setRewardClickBurst(false);
-    setTimeout(() => {
-      setRewardClickBurst(true);
-      setTimeout(() => setRewardClickBurst(false), 900);
-    }, 10);
-  };
-
   return (
     <Box
       sx={{
@@ -254,103 +237,95 @@ const Map = () => {
       }}
     >
       <Stack
-        direction={{ xs: "column", md: "row" }}
+        direction="row"
         justifyContent="space-between"
-        alignItems={{ xs: "stretch", md: "flex-start" }}
-        spacing={2}
-        sx={{ flexShrink: 0, mb: 1.5 }}
+        alignItems="center"
+        spacing={1}
+        sx={{ flexShrink: 0, mb: 1.1, flexWrap: "wrap", rowGap: 1 }}
       >
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ gap: 1.5 }}>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 800,
-                fontSize: { xs: "1.15rem", sm: "1.5rem" },
-                lineHeight: 1.25,
-                wordBreak: "keep-all",
-              }}
-            >
-              반가워요,{" "}
-              <Box component="span" sx={{ color: "#7CFF72" }}>
-                {displayName}
-                <Box component="span" sx={{ color: "#7CFF72" }}>
-                  님
-                </Box>
-              </Box>
-            </Typography>
-          </Stack>
-        </Box>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0, flexWrap: "wrap" }}>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 800,
+              fontSize: { xs: "1rem", sm: "1.35rem" },
+              lineHeight: 1.25,
+              wordBreak: "keep-all",
+            }}
+          >
+            반가워요, <Box component="span" sx={{ color: "#7CFF72" }}>{displayName}</Box>님
+          </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<MenuBookRoundedIcon sx={{ fontSize: 16 }} />}
+            onClick={() => navigate("/map/guide")}
+            sx={{
+              color: "#7CFF72",
+              borderColor: "rgba(124,255,114,0.45)",
+              fontWeight: 700,
+              textTransform: "none",
+              borderRadius: 999,
+              py: { xs: 0.45, sm: 0.55 },
+              px: { xs: 1.2, sm: 1.35 },
+              minHeight: { xs: 34, sm: 38 },
+              fontSize: { xs: "0.72rem", sm: "0.78rem" },
+              lineHeight: 1.1,
+              bgcolor: "rgba(0,0,0,0.28)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            이용방법
+          </Button>
+        </Stack>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Box
+            sx={{
+              px: { xs: 1.2, sm: 1.4 },
+              py: { xs: 0.45, sm: 0.55 },
+              minHeight: { xs: 34, sm: 38 },
+              borderRadius: 999,
+              border: "1px solid rgba(124,255,114,0.26)",
+              background: "rgba(0,0,0,0.76)",
+              color: "#7CFF72",
+              fontWeight: 900,
+              fontSize: { xs: "0.78rem", sm: "0.84rem" },
+              display: "flex",
+              alignItems: "center",
+              whiteSpace: "nowrap",
+            }}
+          >
+            현재 리워드 {myRewards}
+          </Box>
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<StorefrontRoundedIcon sx={{ fontSize: 16 }} />}
+            onClick={() => navigate("/reward_market")}
+            sx={{
+              minHeight: { xs: 34, sm: 38 },
+              borderRadius: 999,
+              px: { xs: 1.2, sm: 1.35 },
+              fontSize: { xs: "0.72rem", sm: "0.78rem" },
+              fontWeight: 800,
+              textTransform: "none",
+              bgcolor: "#7CFF72",
+              color: "#0a0f0a",
+              "&:hover": { bgcolor: "#9dff92" },
+              whiteSpace: "nowrap",
+            }}
+          >
+            리워드마켓
+          </Button>
+        </Stack>
       </Stack>
-      <Button
-        size="small"
-        variant="outlined"
-        startIcon={<MenuBookRoundedIcon sx={{ fontSize: 16 }} />}
-        onClick={() => navigate("/map/guide")}
-        sx={{
-          position: "absolute",
-          right: { xs: 10, sm: 14 },
-          top: { xs: 12, sm: 16 },
-          zIndex: 1410,
-          color: "#7CFF72",
-          borderColor: "rgba(124,255,114,0.45)",
-          fontWeight: 700,
-          textTransform: "none",
-          borderRadius: 999,
-          py: { xs: 0.45, sm: 0.55 },
-          px: { xs: 1.2, sm: 1.35 },
-          minHeight: { xs: 34, sm: 38 },
-          minWidth: 0,
-          fontSize: { xs: "0.72rem", sm: "0.78rem" },
-          lineHeight: 1.1,
-          bgcolor: "rgba(0,0,0,0.28)",
-          whiteSpace: "nowrap",
-          "& .MuiButton-startIcon": { mr: 0.55, ml: 0, "& > *:first-of-type": { fontSize: { xs: 14, sm: 15 } } },
-        }}
-      >
-        이용방법
-      </Button>
-      <Box
-        role="button"
-        aria-label="reward"
-        onClick={triggerRewardClickBurst}
-        sx={{
-          position: "absolute",
-          left: "50%",
-          top: { xs: 12, sm: 14 },
-          transform: "translateX(-50%)",
-          zIndex: 1400,
-          px: { xs: 1.35, sm: 1.55 },
-          py: { xs: 0.45, sm: 0.55 },
-          minHeight: { xs: 34, sm: 38 },
-          borderRadius: 999,
-          border: "1px solid rgba(124,255,114,0.26)",
-          background: "linear-gradient(180deg, rgba(10,24,10,0.88), rgba(4,10,4,0.84))",
-          boxShadow: "0 10px 28px rgba(0,0,0,0.38), inset 0 1px 0 rgba(190,255,180,0.12)",
-          color: "#7CFF72",
-          fontWeight: 900,
-          fontSize: { xs: "0.82rem", sm: "0.9rem" },
-          letterSpacing: "-0.01em",
-          textShadow: "0 4px 18px rgba(124,255,114,0.35)",
-          userSelect: "none",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          transition: "transform 180ms ease, box-shadow 180ms ease",
-          "&:hover": { transform: "translateX(-50%) translateY(-1px)", boxShadow: "0 14px 34px rgba(0,0,0,0.44), 0 0 22px rgba(124,255,114,0.22)" },
-          "&:active": { transform: "translateX(-50%) scale(0.98)" },
-        }}
-      >
-        ★ 리워드 {myRewards}
-      </Box>
       {rewardBurst && (
         <>
           <Box
             sx={{
               position: "absolute",
-              left: "50%",
-              top: { xs: 30, sm: 34 },
+              right: { xs: 88, sm: 94 },
+              top: { xs: 44, sm: 50 },
               width: 74,
               height: 74,
               borderRadius: "50%",
@@ -363,12 +338,11 @@ const Map = () => {
           <Box
             sx={{
               position: "absolute",
-              left: "50%",
-              top: { xs: 54, sm: 62 },
+              right: { xs: 122, sm: 128 },
+              top: { xs: 64, sm: 74 },
               color: "rgba(173,255,151,0.95)",
               fontWeight: 900,
               fontSize: { xs: "2.1rem", sm: "2.8rem" },
-              transform: "translateX(-34px)",
               textShadow: "0 8px 30px rgba(124,255,114,0.55)",
               animation: `${popAnim} 0.95s ease-out`,
               zIndex: 1451,
@@ -380,12 +354,11 @@ const Map = () => {
           <Box
             sx={{
               position: "absolute",
-              left: "50%",
-              top: { xs: 82, sm: 92 },
+              right: { xs: 94, sm: 102 },
+              top: { xs: 92, sm: 102 },
               color: "#7CFF72",
               fontWeight: 900,
               fontSize: { xs: "2.4rem", sm: "3.1rem" },
-              transform: "translateX(-8px)",
               textShadow: "0 8px 28px rgba(124,255,114,0.55)",
               animation: `${popAnim} 0.95s ease-out`,
               zIndex: 1451,
@@ -394,27 +367,6 @@ const Map = () => {
           >
             +1
           </Box>
-        </>
-      )}
-      {rewardClickBurst && (
-        <>
-          <Box
-            sx={{
-              position: "absolute",
-              left: "50%",
-              top: { xs: 36, sm: 40 },
-              width: 90,
-              height: 90,
-              borderRadius: "50%",
-              border: "3px solid rgba(124,255,114,0.65)",
-              animation: `${rewardRingBig} 0.9s ease-out`,
-              zIndex: 1452,
-              pointerEvents: "none",
-            }}
-          />
-          <Box sx={{ position: "absolute", left: "50%", top: { xs: 58, sm: 66 }, color: "#c9ffbf", fontSize: { xs: "2.2rem", sm: "2.9rem" }, transform: "translateX(-50%)", animation: `${rewardSpark} 0.9s ease-out`, zIndex: 1453, pointerEvents: "none" }}>✦</Box>
-          <Box sx={{ position: "absolute", left: "50%", top: { xs: 58, sm: 66 }, color: "#a6ff98", fontSize: { xs: "2rem", sm: "2.6rem" }, transform: "translateX(-50%)", animation: `${rewardSpark} 0.9s ease-out`, animationDelay: "90ms", zIndex: 1453, pointerEvents: "none" }}>✶</Box>
-          <Box sx={{ position: "absolute", left: "50%", top: { xs: 58, sm: 66 }, color: "#7CFF72", fontSize: { xs: "2.3rem", sm: "3rem" }, transform: "translateX(-50%)", animation: `${rewardSpark} 0.9s ease-out`, animationDelay: "160ms", zIndex: 1453, pointerEvents: "none" }}>✷</Box>
         </>
       )}
 
@@ -460,7 +412,7 @@ const Map = () => {
         sx={{
           flex: 1,
           minHeight: 0,
-          mt: { xs: 2.8, sm: 2.2 },
+          mt: { xs: 0.4, sm: 0.6 },
           position: "relative",
           borderRadius: 3,
           overflow: "hidden",

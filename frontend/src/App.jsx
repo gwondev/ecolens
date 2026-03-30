@@ -13,6 +13,7 @@ import IotIntegration from "./pages/features/IotIntegration";
 import Reward from "./pages/features/Reward";
 import OperationsHub from "./pages/features/OperationsHub";
 import Mosquitto from "./pages/Mosquitto";
+import RewardMarket from "./pages/RewardMarket";
 
 const theme = createTheme({
   palette: {
@@ -41,6 +42,7 @@ function App() {
           <Route path="/map/guide" element={<MapGuide />} />
           <Route path="/camera" element={<Camera />} />
           <Route path="/input" element={<Input />} />
+          <Route path="/reward_market" element={<RewardMarket />} />
 
           {/* 관리자 전용 페이지 */}
           <Route path="/db" element={<DB />} />
