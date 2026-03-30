@@ -248,8 +248,13 @@ const Map = () => {
               반가워요,{" "}
               <Box component="span" sx={{ color: "#7CFF72" }}>
                 {displayName}
+                <Box component="span" sx={{ color: "#7CFF72" }}>
+                  님
+                </Box>
               </Box>
-              님
+              <Box component="span" sx={{ color: "rgba(124,255,114,0.92)", fontWeight: 800, ml: 1, fontSize: { xs: "0.9rem", sm: "1.05rem" } }}>
+                · 리워드 {myRewards}
+              </Box>
             </Typography>
           </Stack>
           {heldType && (
@@ -258,53 +263,56 @@ const Map = () => {
             </Typography>
           )}
         </Box>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1}
-          alignItems={{ xs: "stretch", sm: "flex-start" }}
-          sx={{ flexShrink: 0, width: { xs: "100%", sm: "auto" } }}
-        >
-          {showAdminNav && (
-            <Button
-              size="small"
-              fullWidth={false}
-              startIcon={<AdminPanelSettingsRoundedIcon />}
-              onClick={() => navigate("/manage")}
-              sx={{
-                color: "#7CFF72",
-                border: "1px solid rgba(124,255,114,0.4)",
-                minHeight: 40,
-                px: 2,
-                fontWeight: 800,
-                textTransform: "none",
-                whiteSpace: "nowrap",
-              }}
-            >
-              MANAGE
-            </Button>
-          )}
+      </Stack>
+
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1}
+        alignItems={{ xs: "stretch", sm: "flex-start" }}
+        sx={{ flexShrink: 0, width: { xs: "100%", sm: "auto" }, mb: 1.5 }}
+      >
+        {showAdminNav && (
           <Button
             size="small"
-            variant="outlined"
             fullWidth={false}
-            startIcon={<MenuBookRoundedIcon sx={{ fontSize: 18 }} />}
-            onClick={() => navigate("/map/guide")}
+            startIcon={<AdminPanelSettingsRoundedIcon />}
+            onClick={() => navigate("/manage")}
             sx={{
               color: "#7CFF72",
-              borderColor: "rgba(124,255,114,0.45)",
-              fontWeight: 700,
-              textTransform: "none",
-              borderRadius: 999,
-              py: { xs: 0.7, sm: 0.55 },
+              border: "1px solid rgba(124,255,114,0.4)",
               minHeight: 40,
-              fontSize: { xs: "0.74rem", sm: "0.82rem" },
-              bgcolor: "rgba(0,0,0,0.2)",
+              px: 2,
+              fontWeight: 800,
+              textTransform: "none",
               whiteSpace: "nowrap",
+              alignSelf: { xs: "stretch", sm: "flex-start" },
             }}
           >
-            사이트 이용방법
+            MANAGE
           </Button>
-        </Stack>
+        )}
+        <Button
+          size="small"
+          variant="outlined"
+          fullWidth={false}
+          startIcon={<MenuBookRoundedIcon sx={{ fontSize: 18 }} />}
+          onClick={() => navigate("/map/guide")}
+          sx={{
+            color: "#7CFF72",
+            borderColor: "rgba(124,255,114,0.45)",
+            fontWeight: 700,
+            textTransform: "none",
+            borderRadius: 999,
+            py: { xs: 0.7, sm: 0.55 },
+            minHeight: 40,
+            fontSize: { xs: "0.74rem", sm: "0.82rem" },
+            bgcolor: "rgba(0,0,0,0.2)",
+            whiteSpace: "nowrap",
+            alignSelf: { xs: "stretch", sm: "flex-start" },
+          }}
+        >
+          사이트 이용방법
+        </Button>
       </Stack>
 
       {/* 가운데 상단: 현재 리워드 */}
@@ -494,6 +502,37 @@ const Map = () => {
         >
           <MapView userPos={userPos} modules={modulesForMap} onReady={handleReady} hasHeldWaste={hasHeldWaste} />
         </Suspense>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => window.location.reload()}
+          sx={{
+            position: "absolute",
+            right: { xs: 6, sm: 8 },
+            bottom: { xs: 6, sm: 8 },
+            zIndex: 1200,
+            px: { xs: 0.75, sm: 1 },
+            py: { xs: 0.2, sm: 0.25 },
+            minWidth: 0,
+            minHeight: 0,
+            borderRadius: 0.75,
+            bgcolor: "rgba(0,0,0,0.82)",
+            borderColor: "rgba(255,255,255,0.12)",
+            color: "rgba(255,255,255,0.82)",
+            fontSize: { xs: "0.45rem", sm: "0.5rem" },
+            lineHeight: 1.25,
+            fontWeight: 600,
+            textTransform: "none",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.35)",
+            "&:hover": {
+              borderColor: "rgba(124,255,114,0.45)",
+              color: "#b8ff9e",
+              bgcolor: "rgba(0,0,0,0.9)",
+            },
+          }}
+        >
+          위치·모듈 새로고침
+        </Button>
       </Paper>
 
       <Box
@@ -537,14 +576,6 @@ const Map = () => {
             쓰레기 촬영
           </Button>
         </Stack>
-        <Button
-          variant="text"
-          size="small"
-          onClick={() => window.location.reload()}
-          sx={{ color: "rgba(255,255,255,0.55)", fontWeight: 600 }}
-        >
-          위치·모듈 새로고침
-        </Button>
         {loading && (
           <Typography sx={{ color: "rgba(255,255,255,0.65)" }} variant="body2">
             불러오는 중…

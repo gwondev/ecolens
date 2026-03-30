@@ -255,7 +255,7 @@ const Manage = () => {
       transition={{ duration: 0.35 }}
       sx={{ minHeight: "100dvh", bgcolor: "#030403", color: "#fff", py: { xs: 2, sm: 3, md: 4 } }}
     >
-      <Container maxWidth="lg" sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+      <Container maxWidth="md" sx={{ px: { xs: 0.75, sm: 1.25, md: 2 } }}>
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "flex-start" }} sx={{ mb: { xs: 1.5, sm: 2 } }} gap={2}>
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="h4" sx={{ fontWeight: 900, fontSize: { xs: "1.35rem", sm: "2rem" }, lineHeight: 1.2 }}>
@@ -276,16 +276,16 @@ const Manage = () => {
               Admin Management Page
             </Typography>
           </Box>
-          <Stack direction="row" spacing={1} sx={{ width: { xs: "100%", sm: "auto" }, flexShrink: 0 }}>
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ width: { xs: "100%", sm: "auto" }, flexShrink: 0 }}>
             <Button
               startIcon={<ArrowBackIosNewRoundedIcon sx={{ fontSize: 16 }} />}
               variant="outlined"
-              sx={{ color: "#7CFF72", borderColor: "rgba(124,255,114,0.35)", minHeight: 40, flex: { xs: 1, sm: "none" } }}
+              sx={{ color: "#7CFF72", borderColor: "rgba(124,255,114,0.35)", minHeight: 40, flex: { xs: 1, sm: "none" }, minWidth: { xs: "calc(50% - 4px)", sm: "auto" } }}
               onClick={() => navigate("/map")}
             >
               Map
             </Button>
-            <Button onClick={loadOverview} sx={{ color: "#000", bgcolor: "#7CFF72", fontWeight: 800, minHeight: 40, flex: { xs: 1, sm: "none" }, px: { sm: 2 } }}>
+            <Button onClick={loadOverview} sx={{ color: "#000", bgcolor: "#7CFF72", fontWeight: 800, minHeight: 40, flex: { xs: 1, sm: "none" }, minWidth: { xs: "calc(50% - 4px)", sm: "auto" }, px: { sm: 2 } }}>
               새로고침
             </Button>
           </Stack>
@@ -305,7 +305,14 @@ const Manage = () => {
             overflowX: "auto",
             border: "1px solid rgba(124,255,114,0.18)",
             WebkitOverflowScrolling: "touch",
-            "& .MuiTableCell-root": { fontSize: { xs: "0.68rem", sm: "0.8125rem" }, py: { xs: 0.65, sm: 1 } },
+            "& .MuiTableCell-root": {
+              fontSize: { xs: "0.64rem", sm: "0.78rem" },
+              py: { xs: 0.6, sm: 0.9 },
+              px: { xs: 0.5, sm: 1 },
+              whiteSpace: "normal",
+              wordBreak: "break-word",
+              overflowWrap: "anywhere",
+            },
           }}
         >
           <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1.5 }} flexWrap="wrap" gap={1}>
@@ -316,7 +323,7 @@ const Manage = () => {
               </Box>
             </Typography>
           </Stack>
-          <Table size="small">
+          <Table size="small" sx={{ tableLayout: "fixed", minWidth: 0 }}>
             <TableHead>
               <TableRow>
                 <TableCell sx={cellHead}>ID</TableCell>
@@ -366,7 +373,14 @@ const Manage = () => {
             overflowX: "auto",
             border: "1px solid rgba(124,255,114,0.18)",
             WebkitOverflowScrolling: "touch",
-            "& .MuiTableCell-root": { fontSize: { xs: "0.68rem", sm: "0.8125rem" }, py: { xs: 0.65, sm: 1 } },
+            "& .MuiTableCell-root": {
+              fontSize: { xs: "0.62rem", sm: "0.76rem" },
+              py: { xs: 0.58, sm: 0.88 },
+              px: { xs: 0.45, sm: 0.85 },
+              whiteSpace: "normal",
+              wordBreak: "break-word",
+              overflowWrap: "anywhere",
+            },
           }}
         >
           <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1.5 }} flexWrap="wrap" gap={1}>
@@ -380,7 +394,7 @@ const Manage = () => {
               모듈 추가
             </Button>
           </Stack>
-          <Table size="small">
+          <Table size="small" sx={{ tableLayout: "fixed", minWidth: 0 }}>
             <TableHead>
               <TableRow>
                 {["ID", "SERIAL", "ORG", "TYPE", "STATUS", "LAT", "LON", "COUNT", "작업"].map((h) => (
