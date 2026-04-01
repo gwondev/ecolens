@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <cstdio>
 #include <cstring>
 #include <WiFi.h>
 #include <ArduinoJson.h>
@@ -43,6 +44,23 @@ static const unsigned long ULTRA_LOG_INTERVAL_MS = 10000UL;  // 10s
 
 static esp_mqtt_client_handle_t s_mqtt = nullptr;
 static volatile bool s_mqtt_connected = false;
+/** 브로커 연결 전용 ID (토픽의 g1 과 별개). 동일 ID 동시 접속 시 "session taken over" 로 cmd 유실 가능 → MAC으로 유일화 */
+static char s_mqtt_client_id[28] = "";
+
+static void buildMqttClientId() {
+  uint64_t mac = ESP.getEfuseMac();
+  snprintf(
+      s_mqtt_client_id,
+      sizeof(s_mqtt_client_id),
+      "%s-%02X%02X%02X%02X%02X%02X",
+      MODULE_SERIAL,
+      (unsigned)((mac >> 40) & 0xff),
+      (unsigned)((mac >> 32) & 0xff),
+      (unsigned)((mac >> 24) & 0xff),
+      (unsigned)((mac >> 16) & 0xff),
+      (unsigned)((mac >> 8) & 0xff),
+      (unsigned)(mac & 0xff));
+}
 /** Wi-Fi 순간 플랩으로 MQTT를 매번 끊었다 붙이지 않도록, 끊김이 이 시간 이상 지속될 때만 재연결 */
 static const unsigned long WIFI_DOWN_DEBOUNCE_MS = 500;
 static unsigned long s_wifiDownSince = 0;
@@ -263,10 +281,18 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
       }
       break;
 
-    case MQTT_EVENT_DISCONNECTED:
-      Serial.println("MQTT_EVENT_DISCONNECTED");
+    case MQTT_EVENT_DISCONNECTED: {
       s_mqtt_connected = false;
+      if (event->error_handle) {
+        Serial.printf("MQTT_EVENT_DISCONNECTED type=%d esp_tls=%d sock_errno=%d\n",
+                        (int)event->error_handle->error_type,
+                        event->error_handle->esp_tls_last_esp_err,
+                        event->error_handle->esp_transport_sock_errno);
+      } else {
+        Serial.println("MQTT_EVENT_DISCONNECTED");
+      }
       break;
+    }
 
     case MQTT_EVENT_SUBSCRIBED:
       Serial.printf("MQTT_EVENT_SUBSCRIBED msg_id=%d\n", event->msg_id);
@@ -319,15 +345,20 @@ void startMqttClient() {
     s_mqtt_connected = false;
   }
 
+  if (s_mqtt_client_id[0] == '\0') {
+    buildMqttClientId();
+  }
+
   esp_mqtt_client_config_t cfg = {};
   cfg.uri = MQTT_WS_URI;
-  cfg.client_id = MODULE_SERIAL;
+  cfg.client_id = s_mqtt_client_id;
   cfg.keepalive = 120;
   cfg.disable_clean_session = false;
   cfg.disable_auto_reconnect = false;
   cfg.reconnect_timeout_ms = 8000;
   cfg.buffer_size = 4096;
-  Serial.printf("[MQTT] client start uri=%s id=%s\n", cfg.uri, cfg.client_id);
+  Serial.printf("[MQTT] client start uri=%s id=%s (topic cmd still greeneye/%s/cmd)\n",
+                cfg.uri, cfg.client_id, MODULE_SERIAL);
   s_mqtt = esp_mqtt_client_init(&cfg);
   esp_mqtt_client_register_event(s_mqtt, MQTT_EVENT_ANY, mqtt_event_handler, nullptr);
   esp_err_t err = esp_mqtt_client_start(s_mqtt);
@@ -363,6 +394,8 @@ void setup() {
   Serial.println();
   Serial.printf("time=%ld\n", (long)time(nullptr));
   Serial.printf("MQTT WS URI: %s\n", MQTT_WS_URI);
+  buildMqttClientId();
+  Serial.printf("[MQTT] broker client_id=%s\n", s_mqtt_client_id);
   startMqttClient();
 }
 

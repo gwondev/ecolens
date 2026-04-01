@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * 브로커로의 발행은 연결·해제를 매 요청마다 반복하지 않고 하나의 세션을 유지한다.
@@ -112,8 +114,10 @@ public class MqttPublisherService {
         try {
             synchronized (clientLock) {
                 connectIfNeeded();
+                // QoS1: 동기 publish는 브로커 PUBACK까지 기다린 뒤 반환되는 경우가 많음 → 실제 전달 시도 완료 후에만 아래 로그
                 client.publish(topic, message);
             }
+            log.info("MQTT publish OK (broker accepted) topic={}", topic);
             mqttTrafficLogService.add("OUT", topic, payload);
         } catch (MqttException e) {
             log.warn("MQTT publish failed, one reconnect retry. topic={}", topic, e);
@@ -123,6 +127,7 @@ public class MqttPublisherService {
                     connectIfNeeded();
                     client.publish(topic, message);
                 }
+                log.info("MQTT publish OK after retry topic={}", topic);
                 mqttTrafficLogService.add("OUT", topic, payload);
             } catch (MqttException e2) {
                 mqttTrafficLogService.add("OUT_ERR", topic, payload);
@@ -130,5 +135,16 @@ public class MqttPublisherService {
                 invalidateClient();
             }
         }
+    }
+
+    /** /api/mosquitto/diag — 실제로 붙은 브로커 URL·연결 여부 확인용 (UI OUT 과 교차검증) */
+    public Map<String, Object> diagnostics() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("brokerUrl", brokerUrl);
+        m.put("publisherClientId", clientId + "-pub");
+        synchronized (clientLock) {
+            m.put("publisherConnected", client != null && client.isConnected());
+        }
+        return m;
     }
 }

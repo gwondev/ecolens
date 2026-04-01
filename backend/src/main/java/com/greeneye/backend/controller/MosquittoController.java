@@ -1,5 +1,6 @@
 package com.greeneye.backend.controller;
 
+import com.greeneye.backend.service.MqttPublisherService;
 import com.greeneye.backend.service.MqttTrafficLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,9 +16,19 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class MosquittoController {
     private final MqttTrafficLogService mqttTrafficLogService;
+    private final MqttPublisherService mqttPublisherService;
 
     @GetMapping("/logs")
     public List<Map<String, Object>> logs(@RequestParam(defaultValue = "20") int limit) {
         return mqttTrafficLogService.latest(limit);
+    }
+
+    /**
+     * 브라우저에서 GET 호출로 확인: 백엔드가 실제로 어느 MQTT URL에 붙는지.
+     * UI [OUT] 과 mosquitto_sub 가 안 맞을 때 여기 brokerUrl 과 publisherConnected 를 본다.
+     */
+    @GetMapping("/diag")
+    public Map<String, Object> diag() {
+        return mqttPublisherService.diagnostics();
     }
 }
