@@ -156,21 +156,37 @@ const Camera = () => {
 
           {preview && (
             <Paper
+              elevation={0}
               sx={{
-                overflow: "hidden",
+                width: "100%",
+                alignSelf: "stretch",
                 borderRadius: 2,
                 border: "1px solid rgba(124,255,114,0.25)",
-                bgcolor: "rgba(0,0,0,0.35)",
-                width: "100%",
-                maxWidth: 400,
-                mx: "auto",
+                bgcolor: "rgba(0,0,0,0.45)",
+                overflow: "hidden",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxSizing: "border-box",
+                minHeight: { xs: 200, sm: 220 },
+                maxHeight: { xs: "42vh", sm: "40vh" },
+                p: { xs: 1, sm: 1.25 },
               }}
             >
               <Box
                 component="img"
                 src={preview}
-                alt="preview"
-                sx={{ width: "100%", maxHeight: 280, objectFit: "contain", display: "block", mx: "auto" }}
+                alt="선택한 폐기물 미리보기"
+                sx={{
+                  display: "block",
+                  maxWidth: "100%",
+                  maxHeight: { xs: "calc(42vh - 24px)", sm: "calc(40vh - 32px)" },
+                  width: "auto",
+                  height: "auto",
+                  objectFit: "contain",
+                  objectPosition: "center center",
+                  margin: "0 auto",
+                }}
               />
             </Paper>
           )}

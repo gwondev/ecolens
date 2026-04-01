@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <cmath>
 #include <cstring>
 #include <WiFi.h>
 #include <ArduinoJson.h>
@@ -31,7 +30,14 @@ static const int PIN_LED_B = 27;
 // FULL: 거리 10cm 미만이 1시간 연속 유지될 때만 전환
 static const unsigned long FULL_DETECT_MS = 60UL * 60UL * 1000UL;  // 1 hour
 static const float FULL_NEAR_CM = 10.0f;
-static const float READY_DELTA_CM = 20.0f;  // READY 구간에서 기준 대비 20cm 이상 변화 시 CHECK
+// baseline 대비 20cm 이상 가까워짐(거리 감소)이 초음파 "틱" 기준 연속 N회 유지될 때 CHECK
+static const float READY_DELTA_CM = 20.0f;
+static const int READY_DROP_TICKS_REQUIRED = 5;
+static const uint32_t LEDC_FREQ_HZ = 10000;  // 고주파 PWM → 깜빡임 줄이고 색이 또렷해 보이게
+static const uint8_t LEDC_RES_BITS = 8;
+static const int LEDC_CH_R = 0;
+static const int LEDC_CH_G = 1;
+static const int LEDC_CH_B = 2;
 static const unsigned long ULTRA_PING_INTERVAL_MS = 65;
 static const unsigned long ULTRA_LOG_INTERVAL_MS = 10000UL;  // 10s
 
@@ -50,15 +56,27 @@ bool readyBaselineSet = false;
 static unsigned long s_lastUltraPingMs = 0;
 static unsigned long s_lastUltraLogMs = 0;
 static float s_lastDistCm = -1.0f;
+/** 초음파 새 측정이 나올 때마다 증가 (loop 20ms와 무관하게 1틱=1샘플) */
+static uint32_t s_ultraSampleSeq = 0;
+static int s_readyDropStreak = 0;
+/** READY 진입 직후 오래된 s_lastDistCm으로 연산하지 않도록 마지막 처리한 샘플 번호 */
+static uint32_t s_readyLastProcessedUltraSeq = 0;
 
 String topicCmd() { return String("greeneye/") + MODULE_SERIAL + "/cmd"; }
 String topicStatus() { return String("greeneye/") + MODULE_SERIAL + "/status"; }
 
-void applyRgb(bool red, bool green, bool blue) {
-  digitalWrite(PIN_LED_R, red ? HIGH : LOW);
-  digitalWrite(PIN_LED_G, green ? HIGH : LOW);
-  digitalWrite(PIN_LED_B, blue ? HIGH : LOW);
+void rgbPwm(uint8_t r, uint8_t g, uint8_t b) {
+  ledcWrite(LEDC_CH_R, r);
+  ledcWrite(LEDC_CH_G, g);
+  ledcWrite(LEDC_CH_B, b);
 }
+
+void applyRgb(bool red, bool green, bool blue) {
+  rgbPwm(red ? 255 : 0, green ? 255 : 0, blue ? 255 : 0);
+}
+
+/** READY: R·G 최대로 선명한 노랑 (모듈마다 G가 과하면 245 정도로만 낮춰보기) */
+void applyReadyYellowVivid() { rgbPwm(255, 255, 0); }
 
 void enterDefaultIdle() {
   deviceMode = MODE_DEFAULT;
@@ -68,6 +86,7 @@ void enterDefaultIdle() {
   fullSent = false;
   readyBaselineCm = -1.0f;
   readyBaselineSet = false;
+  s_readyDropStreak = 0;
 }
 
 /** HC-SR04류: 실패 시 -1, 유효 시 cm (대략 2~400) */
@@ -95,6 +114,7 @@ void updateUltrasonicSample() {
   }
   s_lastUltraPingMs = now;
   s_lastDistCm = measureDistanceCm();
+  s_ultraSampleSeq++;
   if (s_lastDistCm >= 0 && (now - s_lastUltraLogMs >= ULTRA_LOG_INTERVAL_MS)) {
     s_lastUltraLogMs = now;
     Serial.printf("[ULTRA] dist=%.1f cm\n", s_lastDistCm);
@@ -190,11 +210,14 @@ void armReady(const char *nick) {
   pendingNickname[sizeof(pendingNickname) - 1] = '\0';
   deviceMode = MODE_READY_WAIT;
   readyDeadlineMs = millis() + 10000UL;
-  applyRgb(true, true, false);  // YELLOW = R + G
+  applyReadyYellowVivid();
   fullDetectStartMs = 0;
   readyBaselineCm = -1.0f;
   readyBaselineSet = false;
-  Serial.printf(">>> READY 10s, userId=%s (delta>=%.0fcm -> CHECK)\n", pendingNickname, (double)READY_DELTA_CM);
+  s_readyDropStreak = 0;
+  s_readyLastProcessedUltraSeq = s_ultraSampleSeq;
+  Serial.printf(">>> READY 10s, userId=%s (drop>=%.0fcm x %d ultra-ticks -> CHECK)\n",
+                pendingNickname, (double)READY_DELTA_CM, READY_DROP_TICKS_REQUIRED);
 }
 
 void handleIncomingCmdPayload(const char *payload) {
@@ -315,9 +338,12 @@ void setup() {
   pinMode(PIN_TRIG, OUTPUT);
   pinMode(PIN_ECHO, INPUT);
   digitalWrite(PIN_TRIG, LOW);
-  pinMode(PIN_LED_R, OUTPUT);
-  pinMode(PIN_LED_G, OUTPUT);
-  pinMode(PIN_LED_B, OUTPUT);
+  ledcSetup(LEDC_CH_R, LEDC_FREQ_HZ, LEDC_RES_BITS);
+  ledcSetup(LEDC_CH_G, LEDC_FREQ_HZ, LEDC_RES_BITS);
+  ledcSetup(LEDC_CH_B, LEDC_FREQ_HZ, LEDC_RES_BITS);
+  ledcAttachPin(PIN_LED_R, LEDC_CH_R);
+  ledcAttachPin(PIN_LED_G, LEDC_CH_G);
+  ledcAttachPin(PIN_LED_B, LEDC_CH_B);
   enterDefaultIdle();
 
   while (!connectWifiFromLists()) {
@@ -380,24 +406,48 @@ void loop() {
     return;
   }
 
+  applyReadyYellowVivid();
+
+  // 초음파 새 샘플이 올 때만(1틱=약 65ms) 감소·스트릭 판단 — loop(20ms) 반복으로 중복 카운트 방지
+  if (s_ultraSampleSeq == s_readyLastProcessedUltraSeq) {
+    if (millis() >= readyDeadlineMs) {
+      publishStatusReadyTimeout();
+      enterDefaultIdle();
+    }
+    delay(20);
+    return;
+  }
+  s_readyLastProcessedUltraSeq = s_ultraSampleSeq;
+  cm = s_lastDistCm;
+
   if (cm >= 0) {
     if (!readyBaselineSet) {
       readyBaselineCm = cm;
       readyBaselineSet = true;
       Serial.printf("[READY] baseline=%.1f cm\n", readyBaselineCm);
     } else {
-      float delta = std::fabs(cm - readyBaselineCm);
-      if (delta >= READY_DELTA_CM) {
-        Serial.printf(">>> CHECK trigger delta=%.1f (base=%.1f now=%.1f)\n", (double)delta, (double)readyBaselineCm, (double)cm);
+      float drop = readyBaselineCm - cm;
+      if (drop >= READY_DELTA_CM) {
+        s_readyDropStreak++;
+      } else {
+        s_readyDropStreak = 0;
+      }
+
+      if (s_readyDropStreak >= READY_DROP_TICKS_REQUIRED) {
+        Serial.printf(">>> CHECK trigger drop=%.1f (base=%.1f now=%.1f, streak=%d)\n",
+                      (double)drop, (double)readyBaselineCm, (double)cm, s_readyDropStreak);
         publishStatusCheck();
         deviceMode = MODE_CHECK_SHOW;
         applyRgb(false, true, false);  // GREEN
-        greenUntilMs = millis() + 5000UL;
+        greenUntilMs = readyDeadlineMs;
         pendingNickname[0] = '\0';
+        s_readyDropStreak = 0;
         delay(20);
         return;
       }
     }
+  } else {
+    s_readyDropStreak = 0;
   }
 
   if (millis() >= readyDeadlineMs) {
@@ -406,3 +456,4 @@ void loop() {
   }
   delay(20);
 }
+
