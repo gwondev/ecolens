@@ -30,6 +30,9 @@ public class MqttPublisherService {
     @Value("${mqtt.client-id:greeneye-backend}")
     private String clientId;
 
+    @Value("${mqtt.enabled:false}")
+    private boolean mqttEnabled;
+
     private final Object clientLock = new Object();
     private volatile MqttClient client;
 
@@ -39,6 +42,10 @@ public class MqttPublisherService {
 
     @PostConstruct
     public void init() {
+        if (!mqttEnabled) {
+            log.info("MQTT publisher disabled by config");
+            return;
+        }
         try {
             connectIfNeeded();
         } catch (MqttException e) {
@@ -109,6 +116,10 @@ public class MqttPublisherService {
     }
 
     public void publish(String topic, String payload) {
+        if (!mqttEnabled) {
+            log.info("MQTT disabled: skip publish topic={}", topic);
+            return;
+        }
         MqttMessage message = new MqttMessage(payload.getBytes(StandardCharsets.UTF_8));
         message.setQos(1);
         try {
@@ -140,6 +151,7 @@ public class MqttPublisherService {
     /** /api/mosquitto/diag — 실제로 붙은 브로커 URL·연결 여부 확인용 (UI OUT 과 교차검증) */
     public Map<String, Object> diagnostics() {
         Map<String, Object> m = new LinkedHashMap<>();
+        m.put("mqttEnabled", mqttEnabled);
         m.put("brokerUrl", brokerUrl);
         m.put("publisherClientId", clientId + "-pub");
         synchronized (clientLock) {

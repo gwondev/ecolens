@@ -33,12 +33,19 @@ public class MqttSubscriberService implements Runnable {
     @Value("${mqtt.subscriber-client-id:greeneye-backend-sub}")
     private String subscriberClientId;
 
+    @Value("${mqtt.enabled:false}")
+    private boolean mqttEnabled;
+
     private final AtomicBoolean running = new AtomicBoolean(true);
     private Thread thread;
     private volatile MqttClient client;
 
     @PostConstruct
     public void start() {
+        if (!mqttEnabled) {
+            log.info("MQTT subscriber disabled by config");
+            return;
+        }
         log.info("MQTT subscriber thread start. brokerUrl={}, clientId={}", brokerUrl, subscriberClientId);
         thread = new Thread(this, "mqtt-subscriber");
         thread.setDaemon(true);

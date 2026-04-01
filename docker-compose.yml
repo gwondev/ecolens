@@ -10,19 +10,6 @@ services:
     networks:
       - global_network
 
-  mosquitto:
-    image: eclipse-mosquitto:2
-    container_name: greeneye-mosquitto
-    restart: always
-    ports:
-      - "1883:1883"
-      - "9001:9001"
-    volumes:
-      - ./mosquitto/config:/mosquitto/config
-      - mosquitto_data:/mosquitto/data
-      - mosquitto_log:/mosquitto/log
-    networks:
-      - global_network
 
   frontend:
     restart: always # 꺼지면 재시작

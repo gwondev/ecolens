@@ -1,6 +1,4 @@
-import { Box, Typography, Container, Stack, Button } from "@mui/material";
-import { keyframes } from "@emotion/react";
-import { motion } from "framer-motion";
+import { Box, Typography, Container, Stack, Button, Paper } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef } from "react";
 import {
@@ -12,18 +10,6 @@ import {
   DEV_OAUTH_ID,
 } from "../services/auth";
 import { GoogleLogin } from "@react-oauth/google";
-
-const floatSlow = keyframes`
-  0% { transform: translate3d(0, 0, 0); }
-  50% { transform: translate3d(0, -8px, 0); }
-  100% { transform: translate3d(0, 0, 0); }
-`;
-
-const glowPulse = keyframes`
-  0% { opacity: 0.45; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.08); }
-  100% { opacity: 0.45; transform: scale(1); }
-`;
 
 const Root = () => {
   const navigate = useNavigate();
@@ -41,7 +27,7 @@ const Root = () => {
       role: "ADMIN",
       status: "ACTIVE",
     });
-    navigate("/map");
+    navigate("/camera");
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
@@ -69,7 +55,7 @@ const Root = () => {
       if (loginResponse?.isNewUser) {
         navigateRef.current("/nickname");
       } else {
-        navigateRef.current("/map");
+        navigateRef.current("/camera");
       }
     } catch (error) {
       console.error(error);
@@ -85,157 +71,64 @@ const Root = () => {
     <Box
       sx={{
         minHeight: "100dvh",
-        bgcolor: "#030403",
-        color: "#fff",
-        position: "relative",
-        overflow: "hidden",
+        bgcolor: "#fff",
+        color: "#111",
         display: "flex",
         alignItems: "center",
       }}
     >
-      <Box
-        sx={{
-          position: "absolute",
-          top: "-8%",
-          left: "-10%",
-          width: { xs: 220, md: 420 },
-          height: { xs: 220, md: 420 },
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(57,255,20,0.16) 0%, rgba(57,255,20,0.06) 35%, rgba(57,255,20,0) 72%)",
-          filter: "blur(24px)",
-          animation: `${glowPulse} 6s ease-in-out infinite`,
-          pointerEvents: "none",
-        }}
-      />
-
-      <Box
-        sx={{
-          position: "absolute",
-          right: "-12%",
-          bottom: "-10%",
-          width: { xs: 260, md: 460 },
-          height: { xs: 260, md: 460 },
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(0,255,140,0.14) 0%, rgba(0,255,140,0.05) 34%, rgba(0,255,140,0) 72%)",
-          filter: "blur(30px)",
-          animation: `${glowPulse} 7.5s ease-in-out infinite`,
-          pointerEvents: "none",
-        }}
-      />
-
-      <Box
-        sx={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)
-          `,
-          backgroundSize: { xs: "28px 28px", md: "40px 40px" },
-          maskImage:
-            "radial-gradient(circle at center, rgba(0,0,0,1) 45%, rgba(0,0,0,0.45) 75%, rgba(0,0,0,0.1) 100%)",
-          opacity: 0.12,
-          pointerEvents: "none",
-        }}
-      />
-
-      <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
+      <Container maxWidth="sm">
         <Stack
-          spacing={{ xs: 4, md: 5 }}
+          spacing={4}
           alignItems="center"
           textAlign="center"
-          sx={{ py: { xs: 6, md: 8 } }}
+          sx={{ py: { xs: 5, md: 8 } }}
         >
-          <Stack spacing={2} alignItems="center" component={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}>
-            <Typography
-              sx={{
-                fontSize: { xs: "2.7rem", sm: "4.3rem", md: "6rem" },
-                fontWeight: 900,
-                lineHeight: 0.95,
-                letterSpacing: "0.14em",
-                color: "#ffffff",
-                textTransform: "uppercase",
-                textShadow:
-                  "0 0 10px rgba(57,255,20,0.10), 0 0 30px rgba(57,255,20,0.10)",
-                animation: `${floatSlow} 6s ease-in-out infinite`,
-              }}
-            >
-              ECOLENS
-            </Typography>
+          <Paper
+            elevation={0}
+            sx={{
+              width: "100%",
+              borderRadius: 3,
+              p: { xs: 3, sm: 4 },
+              border: "1px solid #e8e8e8",
+            }}
+          >
+            <Stack spacing={2.5} alignItems="center">
+              <Typography sx={{ fontSize: { xs: "2.2rem", sm: "3.2rem" }, fontWeight: 900, letterSpacing: "0.06em" }}>
+                ECOLENS
+              </Typography>
+              <Typography sx={{ fontSize: "1rem", color: "#555", lineHeight: 1.6 }}>
+                로그인 후 닉네임만 설정하면 바로 촬영 페이지로 이동합니다.
+              </Typography>
+            </Stack>
+          </Paper>
 
-            <Typography
-              sx={{
-                fontSize: { xs: "0.98rem", sm: "1.15rem", md: "1.3rem" },
-                color: "rgba(255,255,255,0.74)",
-                fontWeight: 400,
-                letterSpacing: "-0.01em",
-                maxWidth: 820,
-                lineHeight: 1.7,
-              }}
-            >
-              AI 기반 지역별 분리배출 안내 플랫폼
-            </Typography>
-          </Stack>
-
-          {!user ? (
-            isDevBypass() ? (
-              <Button
-                onClick={handleLocalDevLogin}
-                sx={{
-                  mt: 1,
-                  minWidth: 220,
-                  height: 52,
-                  borderRadius: 999,
-                  color: "#fff",
-                  textTransform: "none",
-                  fontWeight: 800,
-                  border: "1px solid rgba(57,255,20,0.26)",
-                }}
-              >
-                개발용 로그인
-              </Button>
+          <Stack spacing={2} alignItems="center" sx={{ width: "100%" }}>
+            {!user ? (
+              isDevBypass() ? (
+                <Button onClick={handleLocalDevLogin} variant="contained" sx={{ minWidth: 220, height: 48, borderRadius: 2, bgcolor: "#111", color: "#fff", textTransform: "none", fontWeight: 700 }}>
+                  개발용 로그인
+                </Button>
+              ) : (
+                <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    theme="outline"
+                    size="large"
+                    shape="pill"
+                    text="signin_with"
+                    ux_mode="popup"
+                    width={280}
+                  />
+                </Box>
+              )
             ) : (
-              <Box sx={{ mt: 1, mx: "auto", width: "100%", maxWidth: 280, display: "flex", justifyContent: "center" }}>
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  theme="filled_black"
-                  size="large"
-                  shape="pill"
-                  text="signin_with"
-                  ux_mode="popup"
-                  width={280}
-                />
-              </Box>
-            )
-          ) : (
-            <Button
-              onClick={() => navigate("/map")}
-              sx={{
-                mt: 1,
-                minWidth: { xs: 220, sm: 250 },
-                height: 54,
-                px: 3.5,
-                borderRadius: 999,
-                color: "#fff",
-                textTransform: "none",
-                fontWeight: 800,
-                fontSize: "1rem",
-                border: "1px solid rgba(57,255,20,0.26)",
-                background:
-                  "linear-gradient(90deg, rgba(9,20,9,0.96), rgba(10,16,10,0.98), rgba(9,20,9,0.96))",
-                "&:hover": {
-                  boxShadow: "0 0 24px rgba(57,255,20,0.16)",
-                  background:
-                    "linear-gradient(90deg, rgba(10,28,10,1), rgba(10,18,10,1), rgba(10,28,10,1))",
-                },
-              }}
-            >
-              서비스 시작
-            </Button>
-          )}
+              <Button onClick={() => navigate("/camera")} variant="contained" sx={{ minWidth: 240, height: 50, borderRadius: 2, bgcolor: "#111", color: "#fff", textTransform: "none", fontWeight: 700 }}>
+                촬영 페이지로 이동
+              </Button>
+            )}
+          </Stack>
         </Stack>
       </Container>
     </Box>
