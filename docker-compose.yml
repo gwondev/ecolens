@@ -4,6 +4,8 @@ services:
     build: ./backend # greeneye/backend 경로에 있는 Dockerfile로 이미지 빌드
     env_file:
       - ./backend/.env.production
+    ports:
+      - "8080:8080"
     networks:
       - global_network
 
@@ -11,6 +13,8 @@ services:
   frontend:
     restart: always # 꺼지면 재시작
     build: ./frontend # greeneye/backend 경로에 있는 Dockerfile로 이미지 빌드
+    ports:
+      - "5173:5173"
     networks:
       - global_network
   
