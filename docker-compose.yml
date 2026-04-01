@@ -5,8 +5,6 @@ services:
     build: ./backend # greeneye/backend 경로에 있는 Dockerfile로 이미지 빌드
     env_file:
       - ./backend/.env.production
-    depends_on:
-      - mosquitto
     networks:
       - global_network
 
@@ -23,7 +21,3 @@ services:
 networks:
   global_network:
     external: true
-
-volumes:
-  mosquitto_data:
-  mosquitto_log:
