@@ -1,10 +1,6 @@
 import { Box, Typography, Container, Stack, Button } from "@mui/material";
 import { keyframes } from "@emotion/react";
 import { motion } from "framer-motion";
-import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
-import DeviceHubRoundedIcon from "@mui/icons-material/DeviceHubRounded";
-import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRounded";
-import MapRoundedIcon from "@mui/icons-material/MapRounded";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef } from "react";
 import {
@@ -28,29 +24,6 @@ const glowPulse = keyframes`
   50% { opacity: 0.8; transform: scale(1.08); }
   100% { opacity: 0.45; transform: scale(1); }
 `;
-
-const featureItems = [
-  {
-    title: "AI 분리배출 안내",
-    icon: <AutoAwesomeRoundedIcon sx={{ fontSize: 26 }} />,
-    path: "/features/smart-disposal",
-  },
-  {
-    title: "IoT 모듈 연동",
-    icon: <DeviceHubRoundedIcon sx={{ fontSize: 26 }} />,
-    path: "/features/iot",
-  },
-  {
-    title: "리워드",
-    icon: <WorkspacePremiumRoundedIcon sx={{ fontSize: 26 }} />,
-    path: "/features/reward",
-  },
-  {
-    title: "쓰레기통 통합 관제",
-    icon: <MapRoundedIcon sx={{ fontSize: 26 }} />,
-    path: "/features/operations",
-  },
-];
 
 const Root = () => {
   const navigate = useNavigate();
@@ -189,7 +162,7 @@ const Root = () => {
                 animation: `${floatSlow} 6s ease-in-out infinite`,
               }}
             >
-              GREENEYE
+              ECOLENS
             </Typography>
 
             <Typography
@@ -202,102 +175,9 @@ const Root = () => {
                 lineHeight: 1.7,
               }}
             >
-              AIoT 기반 리워드형 분리배출 안내 시스템
+              AI 기반 지역별 분리배출 안내 플랫폼
             </Typography>
           </Stack>
-
-          <Box
-            component={motion.div}
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: {},
-              visible: { transition: { staggerChildren: 0.08, delayChildren: 0.2 } },
-            }}
-            sx={{
-              width: "100%",
-              maxWidth: 620,
-              display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: { xs: 1.2, sm: 1.6 },
-            }}
-          >
-            {featureItems.map((item) => (
-              <motion.div
-                key={item.path}
-                variants={{
-                  hidden: { opacity: 0, y: 16 },
-                  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
-                }}
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                transition={{ type: "spring", stiffness: 420, damping: 28 }}
-                style={{ width: "100%", minWidth: 0 }}
-              >
-              <Button
-                fullWidth
-                onClick={() => navigate(item.path)}
-                sx={{
-                  minHeight: { xs: 92, sm: 102, md: 110 },
-                  px: { xs: 1.2, sm: 1.8 },
-                  py: 1.8,
-                  borderRadius: 3,
-                  color: "#fff",
-                  justifyContent: "flex-start",
-                  textTransform: "none",
-                  border: "1px solid rgba(255,255,255,0.10)",
-                  background:
-                    "linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))",
-                  backdropFilter: "blur(8px)",
-                  transition: "all 0.25s ease",
-                  "&:hover": {
-                    borderColor: "rgba(57,255,20,0.36)",
-                    boxShadow: "0 0 24px rgba(57,255,20,0.12)",
-                    transform: "translateY(-4px)",
-                    background:
-                      "linear-gradient(135deg, rgba(57,255,20,0.08), rgba(255,255,255,0.03))",
-                  },
-                }}
-              >
-                <Stack
-                  direction="row"
-                  spacing={{ xs: 1, sm: 1.4 }}
-                  alignItems="center"
-                  sx={{ textAlign: "left" }}
-                >
-                  <Box
-                    sx={{
-                      width: { xs: 38, sm: 44 },
-                      height: { xs: 38, sm: 44 },
-                      borderRadius: "12px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#7CFF72",
-                      background: "rgba(57,255,20,0.08)",
-                      border: "1px solid rgba(57,255,20,0.14)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {item.icon}
-                  </Box>
-
-                  <Typography
-                    sx={{
-                      fontSize: { xs: "0.76rem", sm: "0.95rem", md: "1rem" },
-                      fontWeight: 700,
-                      color: "#fff",
-                      lineHeight: 1.3,
-                      wordBreak: "keep-all",
-                    }}
-                  >
-                    {item.title}
-                  </Typography>
-                </Stack>
-              </Button>
-              </motion.div>
-            ))}
-          </Box>
 
           {!user ? (
             isDevBypass() ? (

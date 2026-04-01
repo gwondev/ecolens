@@ -1,54 +1,33 @@
-import { lazy, Suspense, useEffect, useState, useMemo } from "react";
-import { Typography, Box, Paper, Stack, Button, Alert } from "@mui/material";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Typography, Box, Paper, Stack, Button, Alert, Chip } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { getUser } from "../services/auth";
-import { apiFetch } from "../services/api";
-import { keyframes } from "@emotion/react";
-import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
+import { apiFetch, apiFetchMultipart } from "../services/api";
 import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
-import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
+import LocationOnRoundedIcon from "@mui/icons-material/LocationOnRounded";
+import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 
-const MapView = lazy(() => import("./MapView.jsx"));
-
-const HELD_KEY = "greeneye.finalWasteType";
-const HELD_TYPE_LABELS = {
+const TYPE_LABELS = {
   CAN: "캔",
-  PET: "페트병",
   GENERAL: "일반쓰레기",
+  PET: "페트/플라스틱 병",
   HAZARD: "유해폐기물",
 };
-const popAnim = keyframes`
-  0% { transform: translate(-50%, 0) scale(0.4); opacity: 0; }
-  10% { transform: translate(-50%, -14px) scale(1.1); opacity: 1; }
-  60% { transform: translate(-50%, -58px) scale(1.2); opacity: 1; }
-  100% { transform: translate(-50%, -90px) scale(0.95); opacity: 0; }
-`;
-const ringAnim = keyframes`
-  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.95; }
-  100% { transform: translate(-50%, -50%) scale(3.4); opacity: 0; }
-`;
-const ctaPulse = keyframes`
-  0%, 100% { transform: translateY(0); box-shadow: 0 10px 34px rgba(124,255,114,0.34), 0 0 0 1px rgba(124,255,114,0.42); }
-  50% { transform: translateY(-2px); box-shadow: 0 16px 48px rgba(124,255,114,0.48), 0 0 0 1px rgba(124,255,114,0.55); }
-`;
-const ctaShine = keyframes`
-  0% { transform: translateX(-120%); opacity: 0; }
-  20% { opacity: 0.35; }
-  100% { transform: translateX(220%); opacity: 0; }
-`;
 
 const Map = () => {
   const navigate = useNavigate();
   const user = getUser();
-  const [modules, setModules] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const cameraInputRef = useRef(null);
+  const fileInputRef = useRef(null);
   const [userPos, setUserPos] = useState(null);
   const [geoMessage, setGeoMessage] = useState("");
-  const [heldType, setHeldType] = useState(() => sessionStorage.getItem(HELD_KEY) || "");
-  const [myRewards, setMyRewards] = useState(0);
-  const [rewardBurst, setRewardBurst] = useState(false);
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [analyzedType, setAnalyzedType] = useState("");
+  const [manualType, setManualType] = useState("");
+  const [guide, setGuide] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!user?.oauthId) {
@@ -61,7 +40,6 @@ const Map = () => {
       return;
     }
 
-    // 내 위치를 실시간에 가깝게 계속 갱신
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         setUserPos([pos.coords.latitude, pos.coords.longitude]);
@@ -78,75 +56,6 @@ const Map = () => {
     };
   }, [navigate, user?.oauthId]);
 
-  useEffect(() => {
-    const sync = () => setHeldType(sessionStorage.getItem(HELD_KEY) || "");
-    window.addEventListener("storage", sync);
-    window.addEventListener("focus", sync);
-    return () => {
-      window.removeEventListener("storage", sync);
-      window.removeEventListener("focus", sync);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!user?.oauthId) return;
-
-    const run = async () => {
-      try {
-        setLoading(true);
-        setError("");
-        try {
-          await apiFetch("/modules/seed", { method: "POST", body: "{}" });
-        } catch {
-          /* 이미 시드됨 */
-        }
-        const [data, users] = await Promise.all([apiFetch("/modules"), apiFetch("/users")]);
-        setModules(Array.isArray(data) ? data : []);
-        if (Array.isArray(users)) {
-          const nick = user?.nickname;
-          const me = users.find((u) => u?.nickname === nick);
-          const nextRewards = Number(me?.nowRewards ?? 0);
-          setMyRewards((prev) => {
-            if (nextRewards > prev) {
-              setRewardBurst(true);
-              setTimeout(() => setRewardBurst(false), 950);
-            }
-            return nextRewards;
-          });
-        }
-      } catch (e) {
-        setError("모듈 목록을 불러오지 못했습니다.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-
-    // IoT 상태(DEFAULT/READY/CHECK/FULL)가 백엔드 DB에 반영되면 맵이 자동 반영되도록 주기 갱신
-    const t = setInterval(async () => {
-      try {
-        const [data, users] = await Promise.all([apiFetch("/modules"), apiFetch("/users")]);
-        setModules(Array.isArray(data) ? data : []);
-        if (Array.isArray(users)) {
-          const nick = user?.nickname;
-          const me = users.find((u) => u?.nickname === nick);
-          const nextRewards = Number(me?.nowRewards ?? 0);
-          setMyRewards((prev) => {
-            if (nextRewards > prev) {
-              setRewardBurst(true);
-              setTimeout(() => setRewardBurst(false), 950);
-            }
-            return nextRewards;
-          });
-        }
-      } catch {
-        // polling 에러는 일시적일 수 있어 사용자 알림을 매번 띄우지 않는다
-      }
-    }, 3000);
-
-    return () => clearInterval(t);
-  }, [user?.oauthId]);
-
   const requestGeoAgain = () => {
     setGeoMessage("");
     navigator.geolocation.getCurrentPosition(
@@ -159,67 +68,61 @@ const Map = () => {
     );
   };
 
-  const handleReady = async (serialNumber) => {
-    const h = (heldType || sessionStorage.getItem(HELD_KEY) || "").trim().toUpperCase();
-    if (!h) {
-      alert("먼저 쓰레기를 촬영해 주세요.");
+  const onFileChosen = (event) => {
+    const selected = event.target.files?.[0];
+    if (!selected) return;
+    setFile(selected);
+    setPreview(URL.createObjectURL(selected));
+    setAnalyzedType("");
+    setManualType("");
+    setGuide("");
+    setError("");
+  };
+
+  const finalType = useMemo(() => manualType || analyzedType, [manualType, analyzedType]);
+  const locationText = useMemo(() => {
+    if (!userPos) return "위치를 아직 가져오지 못했습니다.";
+    return `위도 ${userPos[0].toFixed(5)}, 경도 ${userPos[1].toFixed(5)}`;
+  }, [userPos]);
+
+  const analyzeAndGuide = async () => {
+    if (!user?.oauthId) return;
+    if (!file) {
+      setError("사진을 촬영하거나 선택해 주세요.");
       return;
     }
-    const mod = modules.find((x) => x.serialNumber === serialNumber);
-    if (mod && (mod.type || "GENERAL").toUpperCase() !== h) {
-      alert(`Camera에서 선택한 분류(${h})와 같은 유형의 쓰레기통만 사용할 수 있습니다.`);
-      return;
-    }
-    const selected = sessionStorage.getItem(HELD_KEY);
-    if (!selected || !String(selected).trim()) {
-      alert("먼저 쓰레기를 촬영해 주세요.");
-      return;
-    }
-    const target = modules.find((x) => x.serialNumber === serialNumber);
-    if (target && String(target.status || "").toUpperCase() === "FULL") {
-      alert("해당 모듈은 FULL 상태라 선택할 수 없습니다.");
-      return;
-    }
+
     try {
-      await apiFetch(`/modules/${serialNumber}/ready`, {
+      setLoading(true);
+      setError("");
+      setGuide("");
+
+      const fd = new FormData();
+      fd.append("image", file);
+      fd.append("oauthId", user.oauthId);
+      if (manualType) fd.append("userSelectedType", manualType);
+      const analyzed = await apiFetchMultipart("/ai/analyze", fd);
+      const nextType = manualType || analyzed?.finalType || analyzed?.predictedType || "GENERAL";
+      setAnalyzedType(nextType);
+
+      const guideResponse = await apiFetch("/ai/disposal-guide", {
         method: "POST",
         body: JSON.stringify({
-          userId: user?.nickname,
-          selectedType: selected,
-          predictedType: selected,
+          wasteType: nextType,
+          latitude: userPos?.[0] ?? null,
+          longitude: userPos?.[1] ?? null,
         }),
       });
-      alert("READY 전송 완료");
-      // 모듈 선택 후 들고 있던 쓰레기 분류는 소진된 것으로 간주하고 초기화
-      sessionStorage.removeItem(HELD_KEY);
-      setHeldType("");
-      const data = await apiFetch("/modules");
-      setModules(Array.isArray(data) ? data : []);
-      navigate("/input");
+      setGuide(guideResponse?.guide || "지역별 배출 안내를 생성하지 못했습니다.");
     } catch (e) {
-      alert("READY 전송 실패 (로컬은 백엔드·DB·닉네임 필요)");
+      setError(e.message || "분석 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
     }
   };
 
   if (!user?.oauthId) return null;
-
-  const showAdminNav = user?.role === "ADMIN";
   const displayName = user?.nickname || "사용자";
-
-  const modulesForMap = useMemo(() => {
-    const h = (heldType || "").trim().toUpperCase();
-    if (!h) return modules;
-    return modules.filter((m) => (m.type || "GENERAL").toUpperCase() === h);
-  }, [modules, heldType]);
-
-  const heldTypeSummary = useMemo(() => {
-    const key = (heldType || "").trim().toUpperCase();
-    if (!key) return "";
-    const label = HELD_TYPE_LABELS[key] || key;
-    return `${label} (${key})`;
-  }, [heldType]);
-
-  const hasHeldWaste = Boolean((heldType || sessionStorage.getItem(HELD_KEY) || "").trim());
   return (
     <Box
       sx={{
@@ -232,7 +135,6 @@ const Map = () => {
         flexDirection: "column",
         overflowX: "hidden",
         p: { xs: 1.25, sm: 2, md: 2.5 },
-        pb: { xs: 1, sm: 1.25 },
         boxSizing: "border-box",
       }}
     >
@@ -253,128 +155,13 @@ const Map = () => {
               wordBreak: "keep-all",
             }}
           >
-            반가워요, <Box component="span" sx={{ color: "#7CFF72" }}>{displayName}</Box>님
+            안녕하세요, <Box component="span" sx={{ color: "#7CFF72" }}>{displayName}</Box>님
+          </Typography>
+          <Typography sx={{ color: "rgba(255,255,255,0.62)", fontSize: { xs: "0.74rem", sm: "0.86rem" } }}>
+            AI 기반 지역별 분리배출 안내 플랫폼
           </Typography>
         </Stack>
       </Stack>
-      <Stack
-        direction="row"
-        spacing={1}
-        alignItems="center"
-        sx={{
-          position: "absolute",
-          right: { xs: 8, sm: 14 },
-          top: { xs: 14, sm: 18 },
-          zIndex: 1410,
-        }}
-      >
-        <Box
-          sx={{
-            px: { xs: 1.2, sm: 1.4 },
-            py: { xs: 0.45, sm: 0.55 },
-            minHeight: { xs: 34, sm: 38 },
-            borderRadius: 999,
-            border: "1px solid rgba(124,255,114,0.26)",
-            background: "rgba(0,0,0,0.86)",
-            color: "#7CFF72",
-            fontWeight: 900,
-            fontSize: { xs: "0.74rem", sm: "0.84rem" },
-            display: "flex",
-            alignItems: "center",
-            whiteSpace: "nowrap",
-          }}
-        >
-          현재 리워드 {myRewards}
-        </Box>
-        <Button
-          size="small"
-          variant="contained"
-          startIcon={<StorefrontRoundedIcon sx={{ fontSize: 16 }} />}
-          onClick={() => navigate("/reward_market")}
-          sx={{
-            minHeight: { xs: 34, sm: 38 },
-            borderRadius: 999,
-            px: { xs: 1.2, sm: 1.35 },
-            fontSize: { xs: "0.72rem", sm: "0.78rem" },
-            fontWeight: 800,
-            textTransform: "none",
-            bgcolor: "#7CFF72",
-            color: "#0a0f0a",
-            "&:hover": { bgcolor: "#9dff92" },
-            whiteSpace: "nowrap",
-          }}
-        >
-          리워드마켓
-        </Button>
-      </Stack>
-      {rewardBurst && (
-        <>
-          <Box
-            sx={{
-              position: "absolute",
-              right: { xs: 88, sm: 94 },
-              top: { xs: 44, sm: 50 },
-              width: 74,
-              height: 74,
-              borderRadius: "50%",
-              border: "4px solid rgba(124,255,114,0.78)",
-              animation: `${ringAnim} 0.9s ease-out`,
-              zIndex: 1450,
-              pointerEvents: "none",
-            }}
-          />
-          <Box
-            sx={{
-              position: "absolute",
-              right: { xs: 122, sm: 128 },
-              top: { xs: 64, sm: 74 },
-              color: "rgba(173,255,151,0.95)",
-              fontWeight: 900,
-              fontSize: { xs: "2.1rem", sm: "2.8rem" },
-              textShadow: "0 8px 30px rgba(124,255,114,0.55)",
-              animation: `${popAnim} 0.95s ease-out`,
-              zIndex: 1451,
-              pointerEvents: "none",
-            }}
-          >
-            ✦
-          </Box>
-          <Box
-            sx={{
-              position: "absolute",
-              right: { xs: 94, sm: 102 },
-              top: { xs: 92, sm: 102 },
-              color: "#7CFF72",
-              fontWeight: 900,
-              fontSize: { xs: "2.4rem", sm: "3.1rem" },
-              textShadow: "0 8px 28px rgba(124,255,114,0.55)",
-              animation: `${popAnim} 0.95s ease-out`,
-              zIndex: 1451,
-              pointerEvents: "none",
-            }}
-          >
-            +1
-          </Box>
-        </>
-      )}
-
-      {heldType && modules.length > modulesForMap.length && (
-        <Alert
-          severity="info"
-          sx={{
-            mb: 1.5,
-            flexShrink: 0,
-            py: { xs: 0.5, sm: 1 },
-            bgcolor: "rgba(124,255,114,0.1)",
-            color: "#e8ffe8",
-            border: "1px solid rgba(124,255,114,0.28)",
-            fontSize: { xs: "0.75rem", sm: "0.875rem" },
-            "& .MuiAlert-message": { width: "100%" },
-          }}
-        >
-          선택 분류({heldType})에 맞는 통만 표시 중입니다.
-        </Alert>
-      )}
 
       {geoMessage && (
         <Alert
@@ -400,329 +187,118 @@ const Map = () => {
         sx={{
           flex: 1,
           minHeight: 0,
-          mt: { xs: 2.1, sm: 1.35 },
+          mt: { xs: 2, sm: 1.35 },
           position: "relative",
           borderRadius: 3,
           overflow: "hidden",
           border: "1px solid rgba(124,255,114,0.25)",
           boxShadow: "0 12px 40px rgba(0,0,0,0.45)",
           bgcolor: "#0a0f0a",
-        }}
-      >
-        <Box
-          sx={{
-            position: "absolute",
-            left: { xs: 6, sm: 8 },
-            bottom: { xs: 6, sm: 8 },
-            zIndex: 1200,
-            px: { xs: 0.5, sm: 0.65 },
-            py: { xs: 0.35, sm: 0.45 },
-            borderRadius: 0.75,
-            bgcolor: "rgba(0,0,0,0.82)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.35)",
-            pointerEvents: "none",
-          }}
-        >
-          <Typography
-            component="div"
-            sx={{
-              color: "rgba(255,255,255,0.82)",
-              fontSize: { xs: "0.45rem", sm: "0.5rem" },
-              lineHeight: 1.25,
-              fontWeight: 600,
-            }}
-          >
-            <Box component="span" aria-label="파란 원" sx={{ fontSize: "0.85em" }}>
-              🔵
-            </Box>{" "}
-            내 위치 ·{" "}
-            <Box component="span" aria-label="초록 원" sx={{ fontSize: "0.85em" }}>
-              🟢
-            </Box>{" "}
-            통
-          </Typography>
-        </Box>
-        {heldTypeSummary && (
-          <Stack
-            direction="row"
-            spacing={{ xs: 0.7, sm: 0.9 }}
-            sx={{
-              position: "absolute",
-              left: { xs: 10, sm: 14 },
-              top: { xs: 10, sm: 14 },
-              zIndex: 1200,
-              maxWidth: { xs: "60%", sm: 320 },
-              alignItems: "stretch",
-            }}
-          >
-            <Box
-              sx={{
-                flex: 1,
-                px: { xs: 1.25, sm: 1.5 },
-                py: { xs: 0.9, sm: 1.05 },
-                borderRadius: 2,
-                border: "1px solid rgba(124,255,114,0.36)",
-                bgcolor: "rgba(4,11,4,0.76)",
-                backdropFilter: "blur(6px)",
-                boxShadow: "0 8px 28px rgba(0,0,0,0.35)",
-                minWidth: 0,
-              }}
-            >
-              <Typography sx={{ color: "rgba(186,255,162,0.9)", fontWeight: 800, fontSize: { xs: "0.64rem", sm: "0.7rem" }, letterSpacing: "0.05em" }}>
-                HOLDING
-              </Typography>
-              <Typography sx={{ color: "#e8ffe1", fontWeight: 900, fontSize: { xs: "0.8rem", sm: "0.9rem" }, lineHeight: 1.35, mt: 0.15 }}>
-                들고있는 쓰레기: {heldTypeSummary}
-              </Typography>
-            </Box>
-            <Button
-              size="small"
-              onClick={() => {
-                sessionStorage.removeItem(HELD_KEY);
-                setHeldType("");
-              }}
-              aria-label="holding-reset"
-              sx={{
-                minWidth: { xs: 64, sm: 72 },
-                width: { xs: 64, sm: 72 },
-                height: "auto",
-                borderRadius: 2,
-                border: "1px solid rgba(124,255,114,0.36)",
-                bgcolor: "rgba(4,11,4,0.76)",
-                color: "#b8ff9e",
-                backdropFilter: "blur(6px)",
-                boxShadow: "0 8px 28px rgba(0,0,0,0.35)",
-                fontWeight: 900,
-                fontSize: { xs: "0.7rem", sm: "0.74rem" },
-                lineHeight: 1.1,
-                px: { xs: 0.6, sm: 0.75 },
-                py: { xs: 0.9, sm: 1.05 },
-                textTransform: "none",
-                "&:hover": {
-                  borderColor: "rgba(124,255,114,0.55)",
-                  color: "#e8ffe1",
-                  bgcolor: "rgba(8,18,8,0.9)",
-                },
-              }}
-            >
-              초기화
-            </Button>
-          </Stack>
-        )}
-        <Suspense
-          fallback={
-            <Box sx={{ height: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.6)", minHeight: 280 }}>
-              지도 로딩…
-            </Box>
-          }
-        >
-          <MapView userPos={userPos} modules={modulesForMap} onReady={handleReady} hasHeldWaste={hasHeldWaste} />
-        </Suspense>
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={() => window.location.reload()}
-          sx={{
-            position: "absolute",
-            right: { xs: 6, sm: 8 },
-            bottom: { xs: 6, sm: 8 },
-            zIndex: 1200,
-            px: { xs: 0.75, sm: 1 },
-            py: { xs: 0.2, sm: 0.25 },
-            minWidth: 0,
-            minHeight: 0,
-            borderRadius: 0.75,
-            bgcolor: "rgba(0,0,0,0.82)",
-            borderColor: "rgba(255,255,255,0.12)",
-            color: "rgba(255,255,255,0.82)",
-            fontSize: { xs: "0.45rem", sm: "0.5rem" },
-            lineHeight: 1.25,
-            fontWeight: 600,
-            textTransform: "none",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.35)",
-            "&:hover": {
-              borderColor: "rgba(124,255,114,0.45)",
-              color: "#b8ff9e",
-              bgcolor: "rgba(0,0,0,0.9)",
-            },
-          }}
-        >
-          위치·모듈 새로고침
-        </Button>
-      </Paper>
-
-      <Box
-        sx={{
-          flexShrink: 0,
-          pt: { xs: 2.2, sm: 2 },
-          pb: 1,
           display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 1,
+          alignItems: "stretch",
         }}
       >
-        <Stack
-          direction="row"
-          spacing={{ xs: 1.4, sm: 1.2 }}
-          alignItems="center"
-          sx={{ width: "100%", justifyContent: "center", px: { xs: 0.8, sm: 0.4 }, mt: { xs: 0.4, sm: 0.2 }, mb: { xs: 0.35, sm: 0.2 } }}
-        >
-          <Button
-            variant="outlined"
-            size="large"
-            startIcon={<MenuBookRoundedIcon sx={{ fontSize: { xs: 24, sm: 28 } }} />}
-            onClick={() => navigate("/map/guide")}
-            sx={{
-              px: { xs: 2, sm: 3.2 },
-              py: { xs: 1.5, sm: 1.75 },
-              width: "50%",
-              minWidth: 0,
-              borderRadius: 999,
-              fontSize: { xs: "0.9rem", sm: "1.02rem" },
-              fontWeight: 900,
-              minHeight: { xs: 48, sm: 56 },
-              letterSpacing: "-0.02em",
-              color: "#7CFF72",
-              borderColor: "rgba(124,255,114,0.45)",
-              backgroundImage: "linear-gradient(120deg, rgba(124,255,114,0.1) 0%, rgba(157,255,146,0.14) 50%, rgba(124,255,114,0.1) 100%)",
-              backgroundSize: "180% 100%",
-              position: "relative",
-              overflow: "hidden",
-              animation: `${ctaPulse} 2.1s ease-in-out infinite`,
-              textTransform: "none",
-              "&::after": {
-                content: '""',
-                position: "absolute",
-                top: 0,
-                bottom: 0,
-                width: "35%",
-                background: "linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.26), rgba(255,255,255,0))",
-                transform: "translateX(-120%)",
-                animation: `${ctaShine} 2.6s ease-in-out infinite`,
-              },
-              "&:hover": {
-                borderColor: "rgba(124,255,114,0.65)",
-                bgcolor: "rgba(124,255,114,0.12)",
-                transform: "translateY(-1px) scale(1.02)",
-                boxShadow: "0 18px 54px rgba(124,255,114,0.3)",
-              },
-            }}
-          >
-            이용방법
-          </Button>
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={<PhotoCameraRoundedIcon sx={{ fontSize: { xs: 24, sm: 28 } }} />}
-            onClick={() => navigate("/camera")}
-            sx={{
-              px: { xs: 2, sm: 3.2 },
-              py: { xs: 1.5, sm: 1.75 },
-              width: "50%",
-              minWidth: 0,
-              borderRadius: 999,
-              fontSize: { xs: "0.9rem", sm: "1.02rem" },
-              fontWeight: 900,
-              minHeight: { xs: 48, sm: 56 },
-              letterSpacing: "-0.02em",
-              color: "#0a0f0a",
-              bgcolor: "#7CFF72",
-              backgroundImage: "linear-gradient(120deg, #7CFF72 0%, #9dff92 50%, #7CFF72 100%)",
-              backgroundSize: "180% 100%",
-              position: "relative",
-              overflow: "hidden",
-              animation: `${ctaPulse} 2.1s ease-in-out infinite`,
-              textTransform: "none",
-              "&::after": {
-                content: '""',
-                position: "absolute",
-                top: 0,
-                bottom: 0,
-                width: "35%",
-                background: "linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.38), rgba(255,255,255,0))",
-                transform: "translateX(-120%)",
-                animation: `${ctaShine} 2.6s ease-in-out infinite`,
-              },
-              "&:hover": {
-                bgcolor: "#9dff92",
-                transform: "translateY(-1px) scale(1.02)",
-                boxShadow: "0 18px 54px rgba(124,255,114,0.5)",
-              },
-            }}
-          >
-            쓰레기 촬영
-          </Button>
-        </Stack>
-        {loading && (
-          <Typography sx={{ color: "rgba(255,255,255,0.65)" }} variant="body2">
-            불러오는 중…
-          </Typography>
-        )}
-        {error && (
-          <Typography sx={{ color: "#ff8a8a" }} variant="body2">
-            {error}
-          </Typography>
-        )}
-      </Box>
-
-      {showAdminNav && !loading && modules.length > 0 && (
         <Box
           sx={{
-            flexShrink: 0,
-            mt: 1,
-            maxHeight: { xs: "18vh", sm: "22vh" },
-            overflow: "auto",
-            display: "grid",
-            gap: { xs: 0.75, sm: 1 },
-            maxWidth: 900,
-            alignSelf: "stretch",
-            mx: "auto",
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(circle at 20% 20%, rgba(124,255,114,0.08), transparent 40%), radial-gradient(circle at 85% 75%, rgba(124,255,114,0.07), transparent 44%), linear-gradient(180deg, #071007 0%, #050905 100%)",
+          }}
+        />
+        <Stack
+          spacing={1.3}
+          sx={{
+            position: "relative",
+            zIndex: 2,
             width: "100%",
-            WebkitOverflowScrolling: "touch",
+            maxWidth: 760,
+            mx: "auto",
+            p: { xs: 1.2, sm: 1.8 },
+            bgcolor: "rgba(0,0,0,0.58)",
+            backdropFilter: "blur(6px)",
           }}
         >
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 0.25, pb: 0.6 }}>
-            <Typography sx={{ color: "rgba(124,255,114,0.85)", fontSize: { xs: "0.68rem", sm: "0.78rem" }, fontWeight: 700 }}>
-              MANAGE · Smart Control Deck
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <LocationOnRoundedIcon sx={{ color: "#7CFF72" }} />
+            <Typography sx={{ fontWeight: 700, fontSize: { xs: "0.85rem", sm: "0.95rem" } }}>
+              현재 위치 기준: {locationText}
             </Typography>
-            <Button
-              size="small"
-              onClick={() => navigate("/manage")}
-              aria-label="manage"
-              sx={{
-                color: "#7CFF72",
-                border: "1px solid rgba(124,255,114,0.4)",
-                minHeight: 34,
-                minWidth: 34,
-                px: 0.65,
-                bgcolor: "rgba(0,0,0,0.25)",
-              }}
-            >
-              <AdminPanelSettingsRoundedIcon sx={{ fontSize: 18 }} />
+          </Stack>
+          <Typography sx={{ color: "rgba(255,255,255,0.72)", fontSize: { xs: "0.78rem", sm: "0.9rem" } }}>
+            지도 위 카메라 패널에서 촬영하면 지역별 분리배출 방침에 맞는 안내를 제공합니다.
+          </Typography>
+        </Stack>
+
+        <Paper
+          sx={{
+            position: "absolute",
+            left: "50%",
+            bottom: { xs: 10, sm: 16 },
+            transform: "translateX(-50%)",
+            width: { xs: "95%", sm: "min(920px, 95%)" },
+            zIndex: 3,
+            borderRadius: 3,
+            border: "1px solid rgba(124,255,114,0.25)",
+            bgcolor: "rgba(0,0,0,0.82)",
+            p: { xs: 1.25, sm: 1.8 },
+          }}
+        >
+          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={onFileChosen} />
+          <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={onFileChosen} />
+
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.1}>
+            <Button startIcon={<PhotoCameraRoundedIcon />} variant="contained" onClick={() => cameraInputRef.current?.click()} sx={{ bgcolor: "#7CFF72", color: "#081108", fontWeight: 800 }}>
+              촬영
+            </Button>
+            <Button startIcon={<ImageRoundedIcon />} variant="outlined" onClick={() => fileInputRef.current?.click()} sx={{ color: "#7CFF72", borderColor: "rgba(124,255,114,0.4)" }}>
+              파일 선택
+            </Button>
+            <Button variant="contained" disabled={!file || loading} onClick={analyzeAndGuide} sx={{ bgcolor: "#1a2e1a", color: "#7CFF72", border: "1px solid rgba(124,255,114,0.4)", fontWeight: 800 }}>
+              {loading ? "분석 중..." : "AI 안내 받기"}
             </Button>
           </Stack>
-          {modules.map((m) => (
-            <Paper key={m.id} sx={{ p: { xs: 1, sm: 1.5 }, bgcolor: "rgba(255,255,255,0.05)", border: "1px solid rgba(124,255,114,0.2)" }}>
-              {/** FULL 모듈은 선택 불가 */}
-              <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-                <Typography sx={{ color: "#fff", fontSize: { xs: "0.72rem", sm: "0.875rem" }, wordBreak: "break-all" }}>
-                  {m.serialNumber} · {m.type} · {m.status} · ({m.lat?.toFixed?.(5) ?? "-"}, {m.lon?.toFixed?.(5) ?? "-"})
-                </Typography>
-                <Button
-                  size="small"
-                  disabled={String(m.status || "").toUpperCase() === "FULL" || !hasHeldWaste}
-                  onClick={() => handleReady(m.serialNumber)}
-                  sx={{ color: "#7CFF72", border: "1px solid rgba(124,255,114,0.4)", minWidth: 72, minHeight: 36 }}
-                >
-                  READY
-                </Button>
-              </Stack>
+
+          {preview && (
+            <Box sx={{ mt: 1.3, borderRadius: 2, overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)", height: { xs: 140, sm: 180 }, display: "flex", justifyContent: "center", bgcolor: "#050805" }}>
+              <Box component="img" src={preview} alt="waste preview" sx={{ maxWidth: "100%", objectFit: "contain" }} />
+            </Box>
+          )}
+          <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mt: 1.1 }}>
+            {Object.entries(TYPE_LABELS).map(([key, label]) => (
+              <Chip
+                key={key}
+                label={label}
+                onClick={() => setManualType(key)}
+                variant={manualType === key ? "filled" : "outlined"}
+                sx={{
+                  color: manualType === key ? "#0b150b" : "#d9ffd0",
+                  bgcolor: manualType === key ? "#7CFF72" : "transparent",
+                  borderColor: "rgba(124,255,114,0.45)",
+                  fontWeight: 700,
+                }}
+              />
+            ))}
+          </Stack>
+          {finalType && (
+            <Typography sx={{ mt: 1, color: "#b8ff9e", fontWeight: 800 }}>
+              분류: {TYPE_LABELS[finalType] || finalType}
+            </Typography>
+          )}
+          {guide && (
+            <Paper sx={{ mt: 1.2, p: 1.2, bgcolor: "rgba(255,255,255,0.04)", border: "1px solid rgba(124,255,114,0.2)" }}>
+              <Typography sx={{ color: "rgba(255,255,255,0.92)", whiteSpace: "pre-wrap", lineHeight: 1.55, fontSize: { xs: "0.84rem", sm: "0.92rem" } }}>
+                {guide}
+              </Typography>
             </Paper>
-          ))}
-        </Box>
-      )}
+          )}
+          {error && (
+            <Typography sx={{ mt: 1, color: "#ff9b9b", fontSize: "0.86rem" }}>
+              {error}
+            </Typography>
+          )}
+        </Stack>
+      </Paper>
     </Box>
   );
 };

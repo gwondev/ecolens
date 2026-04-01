@@ -175,6 +175,75 @@ public class AiController {
         return result;
     }
 
+    @PostMapping(value = "/disposal-guide", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> disposalGuide(@RequestBody Map<String, Object> body) {
+        String wasteTypeRaw = Objects.toString(body.get("wasteType"), "GENERAL");
+        String wasteType = normalizeTypeToken(wasteTypeRaw);
+        String latitude = Objects.toString(body.get("latitude"), "");
+        String longitude = Objects.toString(body.get("longitude"), "");
+
+        String locationHint = (latitude.isBlank() || longitude.isBlank())
+                ? "위치 정보 없음"
+                : ("위도 " + latitude + ", 경도 " + longitude);
+
+        String prompt = """
+                너는 한국의 분리배출 도우미다.
+                사용자가 폐기물 사진을 촬영했고, 분류 결과와 현재 위치 정보가 제공된다.
+                아래 형식으로 한국어로 간결하게 답하라.
+                1) 배출 대상: 한 줄
+                2) 지역별 주의사항: 2~3줄 (위치 정보가 불명확하면 '관할 지자체 앱/홈페이지 확인'을 명시)
+                3) 배출 방법: 번호 목록 3단계
+                과장 없이 일반적으로 안전한 안내를 하라.
+
+                분류: %s
+                위치: %s
+                """.formatted(wasteType, locationHint);
+
+        if (geminiApiKey == null || geminiApiKey.isBlank()) {
+            Map<String, Object> fallback = new LinkedHashMap<>();
+            fallback.put("wasteType", wasteType);
+            fallback.put("guide", fallbackGuide(wasteType, locationHint));
+            return fallback;
+        }
+
+        try {
+            Map<String, Object> reqBody = Map.of(
+                    "contents", List.of(
+                            Map.of("parts", List.of(Map.of("text", prompt)))
+                    )
+            );
+            String url = "https://generativelanguage.googleapis.com/v1beta/models/"
+                    + geminiModel
+                    + ":generateContent?key="
+                    + geminiApiKey;
+
+            String raw = webClientBuilder.build()
+                    .post()
+                    .uri(url)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(reqBody)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block(Duration.ofSeconds(60));
+
+            JsonNode root = objectMapper.readTree(raw == null ? "" : raw);
+            String text = extractGeminiText(root);
+            if (text == null || text.isBlank()) {
+                text = fallbackGuide(wasteType, locationHint);
+            }
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("wasteType", wasteType);
+            result.put("guide", text.trim());
+            return result;
+        } catch (Exception e) {
+            Map<String, Object> fallback = new LinkedHashMap<>();
+            fallback.put("wasteType", wasteType);
+            fallback.put("guide", fallbackGuide(wasteType, locationHint));
+            return fallback;
+        }
+    }
+
     private void applyRateLimitOrThrow(User user) {
         LocalDateTime now = LocalDateTime.now();
         LocalDate today = now.toLocalDate();
@@ -250,5 +319,24 @@ public class AiController {
             case "CAN", "GENERAL", "PET", "HAZARD" -> u;
             default -> null;
         };
+    }
+
+    private String fallbackGuide(String wasteType, String locationHint) {
+        String target = switch (wasteType) {
+            case "CAN" -> "캔류";
+            case "PET" -> "페트/플라스틱 병류";
+            case "HAZARD" -> "유해폐기물";
+            default -> "일반쓰레기";
+        };
+        return """
+                1) 배출 대상: %s
+                2) 지역별 주의사항:
+                - 현재 위치 기준: %s
+                - 지자체마다 요일/품목/봉투 규칙이 달라 관할 지자체 공지 확인이 필요합니다.
+                3) 배출 방법:
+                1. 내용물을 비우고 이물질을 제거합니다.
+                2. 재질별 기준에 맞게 분리합니다.
+                3. 지정된 배출 시간과 장소에 맞춰 배출합니다.
+                """.formatted(target, locationHint);
     }
 }

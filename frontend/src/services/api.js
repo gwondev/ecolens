@@ -2,7 +2,7 @@
 // VITE 가 없을 때만 상대경로 /api → vite 프록시 → 127.0.0.1:8080 (로컬 백엔드).
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.PROD ? "https://greeneye.gwon.run/api" : "/api");
+  (import.meta.env.PROD ? "https://ecolens.gwon.run/api" : "/api");
 
 export async function apiFetch(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {

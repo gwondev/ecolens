@@ -11,7 +11,7 @@ import java.util.Optional;
 
 /**
  * 로컬 개발용: Vite dev + 프론트의 고정 oauthId와 매칭되는 사용자를 DB에 두고, 닉네임/권한을 맞춥니다.
- * 배포 시 {@code greeneye.dev-user.enabled=false} (기본값) 유지.
+ * 배포 시 {@code ecolens.dev-user.enabled=false} (기본값) 유지.
  */
 @Component
 @RequiredArgsConstructor
@@ -19,10 +19,10 @@ public class DevUserBootstrap {
 
     private final UserRepository userRepository;
 
-    @Value("${greeneye.dev-user.enabled:false}")
+    @Value("${ecolens.dev-user.enabled:false}")
     private boolean enabled;
 
-    @Value("${greeneye.dev-user.oauth-id:dev-local-greeneye}")
+    @Value("${ecolens.dev-user.oauth-id:dev-local-ecolens}")
     private String oauthId;
 
     @PostConstruct

@@ -104,7 +104,7 @@ const NicknamePage = () => {
                 textShadow: "0 0 15px rgba(57,255,20,0.15)",
               }}
             >
-              GREENEYE 첫걸음
+              ECOLENS 시작 설정
             </Typography>
             <Typography
               sx={{
@@ -188,7 +188,7 @@ const NicknamePage = () => {
               },
             }}
           >
-             GREENEYE 시작하기
+             ECOLENS 시작하기
           </Button>
 
         </Stack>
