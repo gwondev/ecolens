@@ -96,8 +96,8 @@ void applyRgb(bool red, bool green, bool blue) {
   rgbPwm(red ? 255 : 0, green ? 255 : 0, blue ? 255 : 0);
 }
 
-/** READY: R·G 최대로 선명한 노랑 (모듈마다 G가 과하면 245 정도로만 낮춰보기) */
-void applyReadyYellowVivid() { rgbPwm(255, 255, 0); }
+/** READY: 녹색이 과한 LED 밸런스 보정용 선명 노랑 */
+void applyReadyYellowVivid() { rgbPwm(255, 190, 0); }
 
 void enterDefaultIdle() {
   deviceMode = MODE_DEFAULT;

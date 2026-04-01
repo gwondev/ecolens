@@ -12,7 +12,7 @@ import {
 import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import LocalMallRoundedIcon from "@mui/icons-material/LocalMallRounded";
 import { useNavigate } from "react-router-dom";
-import { getEffectiveNickname, getEffectiveUser, saveUser } from "../services/auth";
+import { getUser, saveUser } from "../services/auth";
 import { apiFetch } from "../services/api";
 
 const ITEMS = [
@@ -23,11 +23,11 @@ const ITEMS = [
 
 const RewardMarket = () => {
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState(() => getEffectiveUser());
-  const [nowRewards, setNowRewards] = useState(() => Number(getEffectiveUser()?.nowRewards ?? 0));
+  const [currentUser, setCurrentUser] = useState(() => getUser());
+  const [nowRewards, setNowRewards] = useState(() => Number(getUser()?.nowRewards ?? 0));
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState("");
-  const nickname = getEffectiveNickname();
+  const nickname = currentUser?.nickname;
 
   useEffect(() => {
     const loadNowRewards = async () => {

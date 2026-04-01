@@ -26,7 +26,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { getEffectiveUser, isDevBypass } from "../services/auth";
+import { getUser } from "../services/auth";
 import { apiFetch } from "../services/api";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
@@ -48,7 +48,7 @@ const MODULE_STATUS_OPTIONS = ["DEFAULT", "READY", "CHECK", "FULL"];
 
 const Manage = () => {
   const navigate = useNavigate();
-  const currentUser = getEffectiveUser();
+  const currentUser = getUser();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -109,7 +109,7 @@ const Manage = () => {
   }, []);
 
   useEffect(() => {
-    if (currentUser?.role !== "ADMIN" && !isDevBypass()) {
+    if (currentUser?.role !== "ADMIN") {
       alert("관리자 전용 페이지입니다.");
       navigate("/map");
       return;
@@ -245,7 +245,7 @@ const Manage = () => {
     }
   };
 
-  if (currentUser?.role !== "ADMIN" && !isDevBypass()) return null;
+  if (currentUser?.role !== "ADMIN") return null;
 
   return (
     <Box

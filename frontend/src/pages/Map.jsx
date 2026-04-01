@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState, useMemo } from "react";
 import { Typography, Box, Paper, Stack, Button, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { getEffectiveUser, getEffectiveNickname } from "../services/auth";
+import { getUser } from "../services/auth";
 import { apiFetch } from "../services/api";
 import { keyframes } from "@emotion/react";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
@@ -40,7 +40,7 @@ const ctaShine = keyframes`
 
 const Map = () => {
   const navigate = useNavigate();
-  const user = getEffectiveUser();
+  const user = getUser();
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -103,7 +103,7 @@ const Map = () => {
         const [data, users] = await Promise.all([apiFetch("/modules"), apiFetch("/users")]);
         setModules(Array.isArray(data) ? data : []);
         if (Array.isArray(users)) {
-          const nick = getEffectiveNickname() || user?.nickname;
+          const nick = user?.nickname;
           const me = users.find((u) => u?.nickname === nick);
           const nextRewards = Number(me?.nowRewards ?? 0);
           setMyRewards((prev) => {
@@ -128,7 +128,7 @@ const Map = () => {
         const [data, users] = await Promise.all([apiFetch("/modules"), apiFetch("/users")]);
         setModules(Array.isArray(data) ? data : []);
         if (Array.isArray(users)) {
-          const nick = getEffectiveNickname() || user?.nickname;
+          const nick = user?.nickname;
           const me = users.find((u) => u?.nickname === nick);
           const nextRewards = Number(me?.nowRewards ?? 0);
           setMyRewards((prev) => {
@@ -184,7 +184,7 @@ const Map = () => {
       await apiFetch(`/modules/${serialNumber}/ready`, {
         method: "POST",
         body: JSON.stringify({
-          userId: getEffectiveNickname() || user?.nickname || "gwon",
+          userId: user?.nickname,
           selectedType: selected,
           predictedType: selected,
         }),
@@ -204,7 +204,7 @@ const Map = () => {
   if (!user?.oauthId) return null;
 
   const showAdminNav = user?.role === "ADMIN";
-  const displayName = user?.nickname || getEffectiveNickname() || "사용자";
+  const displayName = user?.nickname || "사용자";
 
   const modulesForMap = useMemo(() => {
     const h = (heldType || "").trim().toUpperCase();

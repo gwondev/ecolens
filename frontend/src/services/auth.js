@@ -34,18 +34,29 @@ export function getAccessToken() {
 
 export function getUser() {
   const raw = localStorage.getItem(USER_KEY);
-  return raw ? JSON.parse(raw) : null;
+  try {
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 }
 
-/** `npm run dev`(Vite)일 때만: 로그인 강제 리다이렉트·관리자 가드 완화용 */
+/**
+ * dev 우회는 기본 비활성화.
+ * 정말 필요할 때만 VITE_ALLOW_DEV_BYPASS=true 로 켠다.
+ */
 export function isDevBypass() {
-  return import.meta.env.DEV === true;
+  return import.meta.env.DEV === true && String(import.meta.env.VITE_ALLOW_DEV_BYPASS || "").toLowerCase() === "true";
 }
 
-/** 백엔드 `DevUserBootstrap` / `greeneye.dev-user.oauth-id` 와 동일해야 함 */
+/** 백엔드 DevUserBootstrap oauth-id와 동일 */
 export const DEV_OAUTH_ID = "dev-local-greeneye";
 
-/** 로컬 Vite dev: 저장된 사용자 없이도 Map 등에서 gwon / ADMIN 으로 취급 */
+export function isAuthenticated() {
+  const u = getUser();
+  return Boolean(u?.oauthId);
+}
+
 export function getEffectiveUser() {
   const u = getUser();
   if (u?.oauthId) return u;
@@ -60,12 +71,10 @@ export function getEffectiveUser() {
   return null;
 }
 
-/** 로그인 사용자 oauthId */
 export function getEffectiveOauthId() {
   return getEffectiveUser()?.oauthId ?? null;
 }
 
-/** READY 등 닉네임 조회용 */
 export function getEffectiveNickname() {
   return getEffectiveUser()?.nickname ?? null;
 }

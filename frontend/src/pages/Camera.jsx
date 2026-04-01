@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
-import { getEffectiveOauthId, isDevBypass } from "../services/auth";
+import { getUser } from "../services/auth";
 import { apiFetchMultipart } from "../services/api";
 
 const HELD_KEY = "greeneye.finalWasteType";
@@ -35,7 +35,7 @@ const Camera = () => {
   const [result, setResult] = useState(null);
   const [override, setOverride] = useState(null);
 
-  const oauthId = getEffectiveOauthId();
+  const oauthId = getUser()?.oauthId;
 
   const onFileChosen = (e) => {
     const f = e.target.files?.[0];
@@ -49,14 +49,8 @@ const Camera = () => {
 
   const analyze = async () => {
     if (!oauthId) {
-      if (!isDevBypass()) {
-        alert("로그인이 필요합니다.");
-        navigate("/");
-      } else {
-        alert(
-          "로컬 개발: 백엔드에 GREENEYE_DEV_USER_ENABLED=true 로 띄우면 dev 유저가 생성되어 분석이 동작합니다."
-        );
-      }
+      alert("로그인이 필요합니다.");
+      navigate("/");
       return;
     }
     if (!file) {
