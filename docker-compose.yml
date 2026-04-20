@@ -1,5 +1,6 @@
 services:
   backend:
+    container_name: ecolens-backend
     restart: always # 꺼지면 재시작
     build: ./backend # greeneye/backend 경로에 있는 Dockerfile로 이미지 빌드
     env_file:
@@ -11,6 +12,7 @@ services:
 
 
   frontend:
+    container_name: ecolens-frontend
     restart: always # 꺼지면 재시작
     build: ./frontend # greeneye/backend 경로에 있는 Dockerfile로 이미지 빌드
     ports:

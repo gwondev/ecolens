@@ -32,6 +32,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(request -> {
                 var config = new CorsConfiguration();
                 config.setAllowedOrigins(List.of(
+                    "https://ecolens.gwon.run",
                     "https://greeneye.gwon.run",
                     "https://gwon.run",
                     "http://localhost:5173",
