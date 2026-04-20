@@ -4,6 +4,10 @@ services:
     build: ./backend # greeneye/backend 경로에 있는 Dockerfile로 이미지 빌드
     env_file:
       - ./backend/.env.production
+    environment:
+      DB_URL: ${DB_URL:-jdbc:mysql://host.docker.internal:3306/ecolens?serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true&useSSL=false&characterEncoding=UTF-8}
+      DB_USERNAME: ${DB_USERNAME:-gwon}
+      DB_PASSWORD: ${DB_PASSWORD}
     ports:
       - "8080:8080"
     extra_hosts:
