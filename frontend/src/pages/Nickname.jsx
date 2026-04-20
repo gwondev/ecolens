@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { Box, Container, TextField, Button, Typography, Stack, InputAdornment, Paper } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
-import { getUser, saveUser } from "../services/auth";
+import { DEV_OAUTH_ID, getUser, saveUser } from "../services/auth";
 import { apiFetch } from "../services/api";
 
 const NicknamePage = () => {
   const [nickname, setNickname] = useState("");
   const navigate = useNavigate();
   const user = getUser();
+  const isLocalDev = import.meta.env.DEV;
 
   useEffect(() => {
     if (!user?.oauthId) {
@@ -17,7 +18,7 @@ const NicknamePage = () => {
   }, [user?.oauthId, navigate]);
 
   const handleSubmit = async () => {
-    if (!user?.oauthId) {
+    if (!user?.oauthId && !isLocalDev) {
       alert("로그인이 필요합니다.");
       return;
     }
@@ -27,19 +28,31 @@ const NicknamePage = () => {
       return;
     }
 
+    if (isLocalDev) {
+      saveUser({
+        ...(user || {}),
+        oauthId: user?.oauthId || DEV_OAUTH_ID,
+        nickname: nickname.trim(),
+        role: user?.role || "ADMIN",
+        status: user?.status || "ACTIVE",
+      });
+      navigate("/map");
+      return;
+    }
+
     try {
       const response = await apiFetch("/auth/nickname", {
         method: "PUT",
         body: JSON.stringify({
-        oauthId: user.oauthId,
-        nickname: nickname.trim() // 앞뒤 공백 제거
+          oauthId: user.oauthId,
+          nickname: nickname.trim(), // 앞뒤 공백 제거
         }),
       });
       // 서버 기준 사용자 정보로 로컬 저장 동기화
       const updatedUser = response?.user || { ...user, nickname: nickname.trim() };
       saveUser(updatedUser);
-      // 성공하면 촬영 페이지로 이동
-      navigate("/camera");
+      // 성공하면 지도 페이지로 이동
+      navigate("/map");
     } catch (e) {
       alert("이미 사용 중인 별명이거나 에러가 발생했습니다.");
     }
@@ -78,7 +91,7 @@ const NicknamePage = () => {
                 닉네임 설정
               </Typography>
               <Typography sx={{ color: "#555", fontSize: "0.98rem", lineHeight: 1.6 }}>
-                닉네임 입력 후 바로 촬영 페이지로 이동합니다.
+                닉네임 입력 후 바로 지도 페이지로 이동합니다.
               </Typography>
             </Stack>
           </Paper>
@@ -141,7 +154,7 @@ const NicknamePage = () => {
               },
             }}
           >
-            촬영 시작하기
+            지도 시작하기
           </Button>
 
         </Stack>

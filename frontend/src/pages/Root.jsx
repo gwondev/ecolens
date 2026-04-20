@@ -15,6 +15,7 @@ const Root = () => {
   const navigate = useNavigate();
   const user = getUser();
   const navigateRef = useRef(navigate);
+  const isLocalDev = import.meta.env.DEV;
 
   useEffect(() => {
     navigateRef.current = navigate;
@@ -27,7 +28,7 @@ const Root = () => {
       role: "ADMIN",
       status: "ACTIVE",
     });
-    navigate("/camera");
+    navigate("/map");
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
@@ -55,7 +56,7 @@ const Root = () => {
       if (loginResponse?.isNewUser) {
         navigateRef.current("/nickname");
       } else {
-        navigateRef.current("/camera");
+        navigateRef.current("/map");
       }
     } catch (error) {
       console.error(error);
@@ -65,6 +66,16 @@ const Root = () => {
 
   const handleGoogleError = () => {
     alert("구글 로그인에 실패했습니다.");
+  };
+
+  const handleLocalGoogleShortcut = () => {
+    saveUser({
+      oauthId: DEV_OAUTH_ID,
+      nickname: "",
+      role: "ADMIN",
+      status: "ACTIVE",
+    });
+    navigate("/nickname");
   };
 
   return (
@@ -98,14 +109,22 @@ const Root = () => {
                 ECOLENS
               </Typography>
               <Typography sx={{ fontSize: "1rem", color: "#555", lineHeight: 1.6 }}>
-                로그인 후 닉네임만 설정하면 바로 촬영 페이지로 이동합니다.
+                로그인 후 닉네임을 설정하면 지도 기반 분리수거 화면으로 이동합니다.
               </Typography>
             </Stack>
           </Paper>
 
           <Stack spacing={2} alignItems="center" sx={{ width: "100%" }}>
             {!user ? (
-              isDevBypass() ? (
+              isLocalDev ? (
+                <Button
+                  onClick={handleLocalGoogleShortcut}
+                  variant="contained"
+                  sx={{ minWidth: 220, height: 48, borderRadius: 2, bgcolor: "#111", color: "#fff", textTransform: "none", fontWeight: 700 }}
+                >
+                  구글 로그인 (로컬 테스트)
+                </Button>
+              ) : isDevBypass() ? (
                 <Button onClick={handleLocalDevLogin} variant="contained" sx={{ minWidth: 220, height: 48, borderRadius: 2, bgcolor: "#111", color: "#fff", textTransform: "none", fontWeight: 700 }}>
                   개발용 로그인
                 </Button>
@@ -124,8 +143,8 @@ const Root = () => {
                 </Box>
               )
             ) : (
-              <Button onClick={() => navigate("/camera")} variant="contained" sx={{ minWidth: 240, height: 50, borderRadius: 2, bgcolor: "#111", color: "#fff", textTransform: "none", fontWeight: 700 }}>
-                촬영 페이지로 이동
+              <Button onClick={() => navigate("/map")} variant="contained" sx={{ minWidth: 240, height: 50, borderRadius: 2, bgcolor: "#111", color: "#fff", textTransform: "none", fontWeight: 700 }}>
+                지도 페이지로 이동
               </Button>
             )}
           </Stack>

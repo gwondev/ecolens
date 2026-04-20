@@ -3,6 +3,8 @@ import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
 import Root from "./pages/Root";
 import Nickname from "./pages/Nickname";
 import Camera from "./pages/Camera";
+import MapPage from "./pages/Map";
+import Manage from "./pages/Manage";
 import { isAuthenticated } from "./services/auth";
 
 const theme = createTheme({
@@ -30,7 +32,9 @@ function App() {
         <Routes>
           <Route path="/" element={<Root />} />
           <Route path="/nickname" element={<Nickname />} />
+          <Route path="/map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
           <Route path="/camera" element={<ProtectedRoute><Camera /></ProtectedRoute>} />
+          <Route path="/manage" element={<ProtectedRoute><Manage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

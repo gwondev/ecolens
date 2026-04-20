@@ -1,0 +1,439 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Container,
+  Divider,
+  Paper,
+  Stack,
+  Typography,
+} from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import RoomRoundedIcon from "@mui/icons-material/RoomRounded";
+import CameraswitchRoundedIcon from "@mui/icons-material/CameraswitchRounded";
+import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
+import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
+import {
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer,
+  CircleMarker,
+} from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { getUser } from "../services/auth";
+import { apiFetch, apiFetchMultipart } from "../services/api";
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
+
+const TYPE_LABELS = {
+  CAN: "캔",
+  GENERAL: "일반",
+  PET: "플라스틱/PET",
+  HAZARD: "위험물",
+};
+
+const FALLBACK_CENTER = [35.1469, 126.9228];
+
+const toNumber = (v) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+const MapPage = () => {
+  const navigate = useNavigate();
+  const user = getUser();
+  const oauthId = user?.oauthId;
+  const isAdmin = user?.role === "ADMIN";
+
+  const [myPos, setMyPos] = useState(null);
+  const [geoError, setGeoError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [modules, setModules] = useState([]);
+  const [records, setRecords] = useState([]);
+  const [showHeat, setShowHeat] = useState(false);
+
+  const cameraInputRef = useRef(null);
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState(null);
+  const [guide, setGuide] = useState("");
+  const [guideLoading, setGuideLoading] = useState(false);
+  const [overrideType, setOverrideType] = useState(null);
+
+  useEffect(() => {
+    if (!oauthId) {
+      navigate("/");
+      return;
+    }
+    let cancelled = false;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (cancelled) return;
+        setMyPos([pos.coords.latitude, pos.coords.longitude]);
+      },
+      () => {
+        if (cancelled) return;
+        setGeoError("현재 위치를 가져오지 못해 기본 지도로 표시합니다.");
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [oauthId, navigate]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const moduleList = await apiFetch("/modules");
+      setModules(Array.isArray(moduleList) ? moduleList : []);
+      try {
+        const overview = await apiFetch("/admin/overview");
+        setRecords(Array.isArray(overview?.disposalRecords) ? overview.disposalRecords : []);
+      } catch {
+        setRecords([]);
+      }
+    } catch (e) {
+      setError(e.message || "지도 데이터를 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const moduleById = useMemo(() => {
+    const map = new Map();
+    modules.forEach((m) => map.set(m.id, m));
+    return map;
+  }, [modules]);
+
+  const heatPoints = useMemo(() => {
+    const bucket = new Map();
+    records.forEach((r) => {
+      const mod = moduleById.get(r.moduleId);
+      if (!mod) return;
+      const lat = toNumber(mod.lat);
+      const lon = toNumber(mod.lon);
+      if (lat == null || lon == null) return;
+      const key = `${lat.toFixed(5)}:${lon.toFixed(5)}`;
+      const current = bucket.get(key) || { lat, lon, count: 0 };
+      current.count += 1;
+      bucket.set(key, current);
+    });
+    return Array.from(bucket.values());
+  }, [records, moduleById]);
+
+  const center = myPos || FALLBACK_CENTER;
+  const selectedWasteType =
+    overrideType || analysis?.finalType || analysis?.predictedType || "GENERAL";
+
+  const onFileChosen = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setFile(f);
+    setAnalysis(null);
+    setGuide("");
+    setOverrideType(null);
+    setPreview(URL.createObjectURL(f));
+  };
+
+  const analyzeImage = async () => {
+    if (!oauthId || !file) return;
+    try {
+      setAnalyzing(true);
+      const fd = new FormData();
+      fd.append("image", file);
+      fd.append("oauthId", oauthId);
+      if (overrideType) {
+        fd.append("userSelectedType", overrideType);
+      }
+      const res = await apiFetchMultipart("/ai/analyze", fd);
+      setAnalysis(res);
+    } catch (e) {
+      setError(e.message || "이미지 분석에 실패했습니다.");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const fetchGuide = async () => {
+    try {
+      setGuideLoading(true);
+      const payload = {
+        wasteType: selectedWasteType,
+        latitude: myPos?.[0] ?? "",
+        longitude: myPos?.[1] ?? "",
+      };
+      const res = await apiFetch("/ai/disposal-guide", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      setGuide(res?.guide || "안내를 불러오지 못했습니다.");
+    } catch (e) {
+      setError(e.message || "지역 분리수거 안내를 가져오지 못했습니다.");
+    } finally {
+      setGuideLoading(false);
+    }
+  };
+
+  return (
+    <Box sx={{ minHeight: "100dvh", bgcolor: "#f8fafc", py: 2 }}>
+      <Container maxWidth="xl">
+        <Stack spacing={2}>
+          <Paper
+            elevation={0}
+            sx={{ border: "1px solid #e5e7eb", borderRadius: 3, p: { xs: 2, md: 2.5 } }}
+          >
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", md: "center" }}
+              gap={2}
+            >
+              <Box>
+                <Typography sx={{ fontWeight: 900, fontSize: { xs: "1.3rem", md: "1.6rem" } }}>
+                  반가워요, {user?.nickname || "green-user"}님
+                </Typography>
+                <Typography sx={{ color: "#64748b", mt: 0.5 }}>
+                  지도에서 수거 포인트를 확인하고, 사진 촬영 후 지역 맞춤 분리수거 안내를 받아보세요.
+                </Typography>
+              </Box>
+              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                <Button
+                  variant={showHeat ? "contained" : "outlined"}
+                  startIcon={<TimelineRoundedIcon />}
+                  onClick={() => setShowHeat((v) => !v)}
+                  sx={{
+                    borderColor: "#cbd5e1",
+                    color: showHeat ? "#fff" : "#0f172a",
+                    bgcolor: showHeat ? "#0f172a" : "#fff",
+                    textTransform: "none",
+                    fontWeight: 700,
+                  }}
+                >
+                  이력확인
+                </Button>
+                {isAdmin && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<AdminPanelSettingsRoundedIcon />}
+                    onClick={() => navigate("/manage")}
+                    sx={{ borderColor: "#cbd5e1", color: "#0f172a", textTransform: "none", fontWeight: 700 }}
+                  >
+                    DB 관리
+                  </Button>
+                )}
+              </Stack>
+            </Stack>
+            {geoError && <Alert severity="info" sx={{ mt: 1.5 }}>{geoError}</Alert>}
+            {error && <Alert severity="error" sx={{ mt: 1.5 }}>{error}</Alert>}
+          </Paper>
+
+          <Stack direction={{ xs: "column", lg: "row" }} spacing={2}>
+            <Paper
+              elevation={0}
+              sx={{
+                flex: 1.5,
+                border: "1px solid #e5e7eb",
+                borderRadius: 3,
+                overflow: "hidden",
+                minHeight: 560,
+              }}
+            >
+              {loading ? (
+                <Stack alignItems="center" justifyContent="center" sx={{ height: 560 }}>
+                  <CircularProgress />
+                </Stack>
+              ) : (
+                <MapContainer center={center} zoom={16} style={{ height: 560, width: "100%" }}>
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+
+                  {myPos && (
+                    <Marker position={myPos}>
+                      <Popup>
+                        <strong>내 현재 위치</strong>
+                      </Popup>
+                    </Marker>
+                  )}
+
+                  {modules.map((m) => {
+                    const lat = toNumber(m.lat);
+                    const lon = toNumber(m.lon);
+                    if (lat == null || lon == null) return null;
+                    return (
+                      <Marker key={m.id} position={[lat, lon]}>
+                        <Popup>
+                          <strong>{m.serialNumber}</strong>
+                          <br />
+                          유형: {TYPE_LABELS[m.type] || m.type}
+                          <br />
+                          상태: {m.status}
+                          <br />
+                          누적 배출: {m.totalDisposalCount ?? 0}회
+                        </Popup>
+                      </Marker>
+                    );
+                  })}
+
+                  {showHeat &&
+                    heatPoints.map((p, idx) => (
+                      <CircleMarker
+                        key={`${p.lat}-${p.lon}-${idx}`}
+                        center={[p.lat, p.lon]}
+                        radius={Math.min(24, 6 + p.count * 1.4)}
+                        pathOptions={{
+                          color: "#fb7185",
+                          fillColor: "#f43f5e",
+                          fillOpacity: 0.28,
+                        }}
+                      >
+                        <Popup>이 위치 배출 기록: {p.count}건</Popup>
+                      </CircleMarker>
+                    ))}
+                </MapContainer>
+              )}
+            </Paper>
+
+            <Paper
+              elevation={0}
+              sx={{
+                flex: 1,
+                border: "1px solid #e5e7eb",
+                borderRadius: 3,
+                p: 2,
+                minHeight: 560,
+              }}
+            >
+              <Stack spacing={1.4}>
+                <Typography sx={{ fontWeight: 800, fontSize: "1.08rem" }}>
+                  AI 분리수거 도우미
+                </Typography>
+                <Typography sx={{ color: "#64748b", fontSize: "0.9rem" }}>
+                  사진 업로드 후 Gemini API로 폐기물 분류를 진행하고, 현재 위치 기준 안내를 받습니다.
+                </Typography>
+
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  style={{ display: "none" }}
+                  onChange={onFileChosen}
+                />
+                <Button
+                  variant="outlined"
+                  startIcon={<CameraswitchRoundedIcon />}
+                  onClick={() => cameraInputRef.current?.click()}
+                  sx={{ textTransform: "none", borderColor: "#cbd5e1", color: "#0f172a", fontWeight: 700 }}
+                >
+                  카메라/파일로 사진 선택
+                </Button>
+
+                {preview && (
+                  <Box
+                    component="img"
+                    src={preview}
+                    alt="waste preview"
+                    sx={{ width: "100%", borderRadius: 2, border: "1px solid #e2e8f0", maxHeight: 170, objectFit: "cover" }}
+                  />
+                )}
+
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  {Object.entries(TYPE_LABELS).map(([key, label]) => (
+                    <Chip
+                      key={key}
+                      label={label}
+                      onClick={() => setOverrideType(key)}
+                      variant={overrideType === key ? "filled" : "outlined"}
+                      sx={{
+                        bgcolor: overrideType === key ? "#0f172a" : "#fff",
+                        color: overrideType === key ? "#fff" : "#0f172a",
+                        borderColor: "#cbd5e1",
+                        fontWeight: 700,
+                      }}
+                    />
+                  ))}
+                </Stack>
+
+                <Button
+                  variant="contained"
+                  disabled={!file || analyzing}
+                  onClick={analyzeImage}
+                  sx={{ bgcolor: "#0f172a", textTransform: "none", fontWeight: 800 }}
+                >
+                  {analyzing ? "Gemini 분석 중..." : "사진 분석"}
+                </Button>
+
+                {analysis && (
+                  <Paper elevation={0} sx={{ border: "1px solid #e2e8f0", borderRadius: 2, p: 1.5, bgcolor: "#fff" }}>
+                    <Typography sx={{ fontWeight: 700 }}>
+                      분석 결과: {TYPE_LABELS[analysis.finalType || analysis.predictedType] || analysis.finalType || analysis.predictedType}
+                    </Typography>
+                    <Typography sx={{ mt: 0.8, color: "#475569", fontSize: "0.86rem", whiteSpace: "pre-wrap" }}>
+                      {analysis.rawSnippet || "AI 응답 텍스트가 없습니다."}
+                    </Typography>
+                    <Typography sx={{ mt: 0.8, color: "#64748b", fontSize: "0.8rem" }}>
+                      오늘 남은 분석: {analysis.remainingToday ?? "-"}회
+                    </Typography>
+                  </Paper>
+                )}
+
+                <Button
+                  variant="outlined"
+                  onClick={fetchGuide}
+                  disabled={guideLoading}
+                  sx={{ borderColor: "#cbd5e1", color: "#0f172a", textTransform: "none", fontWeight: 700 }}
+                >
+                  {guideLoading ? "안내 생성 중..." : "위치 기반 분리수거 안내 받기"}
+                </Button>
+
+                {guide && (
+                  <Paper elevation={0} sx={{ border: "1px solid #e2e8f0", borderRadius: 2, p: 1.5, bgcolor: "#f8fafc" }}>
+                    <Typography sx={{ fontWeight: 700, mb: 0.8 }}>
+                      <RoomRoundedIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: "text-top" }} />
+                      지역 맞춤 안내
+                    </Typography>
+                    <Typography sx={{ whiteSpace: "pre-wrap", color: "#334155", fontSize: "0.88rem", lineHeight: 1.55 }}>
+                      {guide}
+                    </Typography>
+                  </Paper>
+                )}
+
+                <Divider />
+
+                <Typography sx={{ fontWeight: 700 }}>
+                  근처 수거 포인트: {modules.length}개
+                </Typography>
+                <Typography sx={{ color: "#64748b", fontSize: "0.85rem" }}>
+                  지도 마커를 눌러 캔/플라스틱/PET 수거 모듈 상태와 누적 배출 횟수를 확인할 수 있습니다.
+                </Typography>
+              </Stack>
+            </Paper>
+          </Stack>
+        </Stack>
+      </Container>
+    </Box>
+  );
+};
+
+export default MapPage;
