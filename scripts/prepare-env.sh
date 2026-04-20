@@ -46,7 +46,7 @@ set +a
 : "${DB_PASSWORD:?prepare-env: DB_PASSWORD 가 $ROOT_ENV 에 없습니다}"
 
 DB_USERNAME="${DB_USERNAME:-gwon}"
-DB_URL="${DB_URL:-jdbc:mysql://host.docker.internal:3306/ecolens?serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true&useSSL=false&characterEncoding=UTF-8}"
+DB_URL="${DB_URL:-jdbc:mysql://gwon-db:3306/ecolens?serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true&useSSL=false&characterEncoding=UTF-8}"
 VITE_API_BASE_URL="${VITE_API_BASE_URL:-/api}"
 
 umask 077
