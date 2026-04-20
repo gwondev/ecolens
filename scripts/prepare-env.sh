@@ -45,7 +45,7 @@ set +a
 : "${ECOLENS_GEMINI_API_KEY:?prepare-env: ECOLENS_GEMINI_API_KEY 가 $ROOT_ENV 에 없습니다}"
 : "${DB_PASSWORD:?prepare-env: DB_PASSWORD 가 $ROOT_ENV 에 없습니다}"
 
-DB_USERNAME="${DB_USERNAME:-gwon}"
+DB_USERNAME="${DB_USERNAME:-root}"
 DB_URL="${DB_URL:-jdbc:mysql://gwon-db:3306/ecolens?serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true&useSSL=false&characterEncoding=UTF-8}"
 VITE_API_BASE_URL="${VITE_API_BASE_URL:-/api}"
 
