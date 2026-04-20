@@ -57,9 +57,7 @@ const Manage = () => {
     users: [],
     modules: [],
     disposalRecords: [],
-    rewardHistories: [],
   });
-  const [mqttLogs, setMqttLogs] = useState([]);
 
   const [userEditOpen, setUserEditOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -67,8 +65,6 @@ const Manage = () => {
     nickname: "",
     role: "USER",
     status: "ACTIVE",
-    totalRewards: 0,
-    nowRewards: 0,
   });
   const [userDeleteTarget, setUserDeleteTarget] = useState(null);
 
@@ -90,17 +86,12 @@ const Manage = () => {
     try {
       setLoading(true);
       setError("");
-      const [data, logs] = await Promise.all([
-        apiFetch("/admin/overview"),
-        apiFetch("/mosquitto/logs?limit=20"),
-      ]);
+      const data = await apiFetch("/admin/overview");
       setOverview({
         users: data?.users || [],
         modules: data?.modules || [],
         disposalRecords: data?.disposalRecords || [],
-        rewardHistories: data?.rewardHistories || [],
       });
-      setMqttLogs(Array.isArray(logs) ? logs : []);
     } catch (e) {
       setError(e.message || "관리 데이터를 불러오지 못했습니다.");
     } finally {
@@ -199,8 +190,6 @@ const Manage = () => {
       nickname: u.nickname ?? "",
       role: u.role === "ADMIN" ? "ADMIN" : "USER",
       status: u.status ?? "ACTIVE",
-      totalRewards: u.totalRewards ?? 0,
-      nowRewards: u.nowRewards ?? 0,
     });
     setUserEditOpen(true);
   };
@@ -215,8 +204,6 @@ const Manage = () => {
           nickname: userForm.nickname.trim() || null,
           role: userForm.role,
           status: userForm.status.trim() || "ACTIVE",
-          totalRewards: Number(userForm.totalRewards) || 0,
-          nowRewards: Number(userForm.nowRewards) || 0,
         }),
       });
       setUserEditOpen(false);
@@ -330,8 +317,6 @@ const Manage = () => {
                 <TableCell sx={cellHead}>닉네임</TableCell>
                 <TableCell sx={cellHead}>ROLE</TableCell>
                 <TableCell sx={cellHead}>상태</TableCell>
-                <TableCell sx={cellHead}>NOW</TableCell>
-                <TableCell sx={cellHead}>TOTAL</TableCell>
                 <TableCell sx={cellHead} align="right">
                   작업
                 </TableCell>
@@ -344,8 +329,6 @@ const Manage = () => {
                   <TableCell sx={cellBody}>{u.nickname || "-"}</TableCell>
                   <TableCell sx={cellBody}>{u.role}</TableCell>
                   <TableCell sx={cellBody}>{u.status}</TableCell>
-                  <TableCell sx={cellBody}>{u.nowRewards ?? 0}</TableCell>
-                  <TableCell sx={cellBody}>{u.totalRewards ?? 0}</TableCell>
                   <TableCell sx={cellBody} align="right">
                     <IconButton size="small" sx={{ color: "#0f172a" }} onClick={() => openUserEdit(u)}>
                       <EditRoundedIcon fontSize="small" />
@@ -429,60 +412,19 @@ const Manage = () => {
           </Table>
         </Paper>
 
-        <Paper
-          sx={{
-            p: { xs: 1, sm: 1.25 },
-            mb: 2,
-            bgcolor: "#ffffff",
-            border: "1px solid #e2e8f0",
-            maxHeight: { xs: 220, sm: 260 },
-            overflow: "auto",
-            WebkitOverflowScrolling: "touch",
-          }}
-        >
-          <Typography sx={{ color: "#0f172a", fontWeight: 800, mb: 0.7, fontSize: { xs: "0.84rem", sm: "0.95rem" } }}>
-            모스키토 최근 20개
-          </Typography>
-          <Stack spacing={0.35}>
-            {mqttLogs.map((row, idx) => (
-              <Typography key={`${row.time}-${idx}`} sx={{ fontSize: { xs: "0.64rem", sm: "0.72rem" }, lineHeight: 1.25, color: "#475569", wordBreak: "break-all" }}>
-                [{row.direction}] {row.time} · {row.topic} · {row.payload}
-              </Typography>
-            ))}
-            {mqttLogs.length === 0 && (
-              <Typography sx={{ fontSize: { xs: "0.7rem", sm: "0.78rem" }, color: "#94a3b8" }}>
-                로그 없음
-              </Typography>
-            )}
-          </Stack>
-        </Paper>
-
         <Divider sx={{ borderColor: "#e2e8f0", my: 2 }} />
 
-        <Stack direction={{ xs: "column", md: "row" }} spacing={{ xs: 1.5, md: 2 }}>
-          <Paper sx={{ p: { xs: 1.25, sm: 2 }, bgcolor: "#ffffff", border: "1px solid #e2e8f0", flex: 1, maxHeight: { xs: 240, sm: 320 }, overflow: "auto", WebkitOverflowScrolling: "touch" }}>
-            <Typography sx={{ color: "#0f172a", fontWeight: 800, mb: 1, fontSize: { xs: "0.85rem", sm: "1rem" } }}>배출 기록(최근)</Typography>
-            {overview.disposalRecords
-              .slice(-20)
-              .reverse()
-              .map((r) => (
-                <Typography key={r.id} sx={{ fontSize: { xs: 11, sm: 13 }, mb: 0.5, lineHeight: 1.45, wordBreak: "break-all" }}>
-                  #{r.id} user:{r.userId} module:{r.moduleId} {r.status} +{r.rewardAmount}
-                </Typography>
-              ))}
-          </Paper>
-          <Paper sx={{ p: { xs: 1.25, sm: 2 }, bgcolor: "#ffffff", border: "1px solid #e2e8f0", flex: 1, maxHeight: { xs: 240, sm: 320 }, overflow: "auto", WebkitOverflowScrolling: "touch" }}>
-            <Typography sx={{ color: "#0f172a", fontWeight: 800, mb: 1, fontSize: { xs: "0.85rem", sm: "1rem" } }}>리워드 내역(최근)</Typography>
-            {overview.rewardHistories
-              .slice(-20)
-              .reverse()
-              .map((h) => (
-                <Typography key={h.id} sx={{ fontSize: { xs: 11, sm: 13 }, mb: 0.5, lineHeight: 1.45, wordBreak: "break-all" }}>
-                  #{h.id} user:{h.userId} record:{h.disposalRecordId} points:{h.points} ({h.reason})
-                </Typography>
-              ))}
-          </Paper>
-        </Stack>
+        <Paper sx={{ p: { xs: 1.25, sm: 2 }, bgcolor: "#ffffff", border: "1px solid #e2e8f0", maxHeight: { xs: 300, sm: 360 }, overflow: "auto", WebkitOverflowScrolling: "touch" }}>
+          <Typography sx={{ color: "#0f172a", fontWeight: 800, mb: 1, fontSize: { xs: "0.85rem", sm: "1rem" } }}>배출 기록(최근)</Typography>
+          {overview.disposalRecords
+            .slice(-30)
+            .reverse()
+            .map((r) => (
+              <Typography key={r.id} sx={{ fontSize: { xs: 11, sm: 13 }, mb: 0.5, lineHeight: 1.45, wordBreak: "break-all" }}>
+                #{r.id} user:{r.userId} module:{r.moduleId} status:{r.status}
+              </Typography>
+            ))}
+        </Paper>
       </Container>
 
       <Dialog open={userEditOpen} onClose={() => !saving && setUserEditOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { bgcolor: "#fff", color: "#0f172a", border: "1px solid #e2e8f0" } }}>
@@ -497,10 +439,6 @@ const Manage = () => {
             </Select>
           </FormControl>
           <TextField label="상태" value={userForm.status} onChange={(e) => setUserForm((f) => ({ ...f, status: e.target.value }))} fullWidth />
-          <Stack direction="row" spacing={2}>
-            <TextField label="누적 리워드" type="number" value={userForm.totalRewards} onChange={(e) => setUserForm((f) => ({ ...f, totalRewards: e.target.value }))} fullWidth />
-            <TextField label="현재 리워드" type="number" value={userForm.nowRewards} onChange={(e) => setUserForm((f) => ({ ...f, nowRewards: e.target.value }))} fullWidth />
-          </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setUserEditOpen(false)} disabled={saving}>

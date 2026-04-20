@@ -60,8 +60,6 @@ public class AuthController {
         userDTO.put("nickname", user.getNickname());
         userDTO.put("role", user.getRole());
         userDTO.put("status", user.getStatus());
-        userDTO.put("nowRewards", user.getNowRewards());
-        userDTO.put("totalRewards", user.getTotalRewards());
         userDTO.put("createdAt", user.getCreatedAt());
         userDTO.put("lastLoginAt", user.getLastLoginAt());
         userDTO.put("cameraDailyCount", user.getCameraDailyCount());
@@ -109,8 +107,6 @@ public class AuthController {
         userDTO.put("nickname", savedUser.getNickname());
         userDTO.put("role", savedUser.getRole());
         userDTO.put("status", savedUser.getStatus());
-        userDTO.put("nowRewards", savedUser.getNowRewards());
-        userDTO.put("totalRewards", savedUser.getTotalRewards());
         userDTO.put("createdAt", savedUser.getCreatedAt());
         userDTO.put("lastLoginAt", savedUser.getLastLoginAt());
         userDTO.put("cameraDailyCount", savedUser.getCameraDailyCount());

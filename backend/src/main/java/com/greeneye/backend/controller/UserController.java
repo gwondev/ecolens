@@ -3,7 +3,6 @@ package com.greeneye.backend.controller;
 import com.greeneye.backend.entity.DisposalRecord;
 import com.greeneye.backend.entity.User;
 import com.greeneye.backend.repository.DisposalRecordRepository;
-import com.greeneye.backend.repository.RewardHistoryRepository;
 import com.greeneye.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,7 +20,6 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final DisposalRecordRepository disposalRecordRepository;
-    private final RewardHistoryRepository rewardHistoryRepository;
 
     @GetMapping
     public List<User> getAllUsers() {
@@ -71,20 +69,6 @@ public class UserController {
             }
         }
 
-        if (body.containsKey("totalRewards")) {
-            Object v = body.get("totalRewards");
-            if (v instanceof Number n) {
-                user.setTotalRewards(Math.max(0, n.intValue()));
-            }
-        }
-
-        if (body.containsKey("nowRewards")) {
-            Object v = body.get("nowRewards");
-            if (v instanceof Number n) {
-                user.setNowRewards(Math.max(0, n.intValue()));
-            }
-        }
-
         return userRepository.save(user);
     }
 
@@ -96,48 +80,8 @@ public class UserController {
 
         List<DisposalRecord> records = disposalRecordRepository.findByUser_IdOrderByCreatedAtDesc(user.getId());
         for (DisposalRecord dr : records) {
-            rewardHistoryRepository.findByDisposalRecord(dr).ifPresent(rewardHistoryRepository::delete);
             disposalRecordRepository.delete(dr);
         }
         userRepository.delete(user);
-    }
-
-    @PostMapping("/{id}/exchange")
-    @Transactional
-    public Map<String, Object> exchangeReward(
-            @PathVariable Long id,
-            @RequestBody Map<String, Object> body
-    ) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-
-        int cost = parseInt(body.get("cost"), 0);
-        if (cost <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "cost must be positive");
-        }
-        if (user.getNowRewards() < cost) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "not enough rewards");
-        }
-
-        user.setNowRewards(user.getNowRewards() - cost);
-        userRepository.save(user);
-
-        String item = body.get("item") == null ? "" : body.get("item").toString().trim();
-        return Map.of(
-                "ok", true,
-                "item", item,
-                "cost", cost,
-                "nowRewards", user.getNowRewards()
-        );
-    }
-
-    private static int parseInt(Object raw, int fallback) {
-        if (raw == null) return fallback;
-        if (raw instanceof Number n) return n.intValue();
-        try {
-            return Integer.parseInt(raw.toString().trim());
-        } catch (NumberFormatException e) {
-            return fallback;
-        }
     }
 }

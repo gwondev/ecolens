@@ -28,9 +28,6 @@ public class DisposalRecord {
     @Column(name = "selected_type", length = 255)
     private String selectedType;
 
-    @Column(name = "reward_amount", nullable = false)
-    private int rewardAmount;
-    
     @Builder.Default
     @Column(name = "status", nullable = false, length = 255)
     private String status = "PENDING"; // PENDING, SUCCESS, FAILED
