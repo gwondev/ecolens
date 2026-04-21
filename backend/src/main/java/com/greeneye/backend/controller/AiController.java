@@ -3,6 +3,8 @@ package com.greeneye.backend.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.greeneye.backend.entity.User;
+import com.greeneye.backend.entity.RecognitionEvent;
+import com.greeneye.backend.repository.RecognitionEventRepository;
 import com.greeneye.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +27,7 @@ import java.util.*;
 public class AiController {
 
     private final UserRepository userRepository;
+    private final RecognitionEventRepository recognitionEventRepository;
     private final WebClient.Builder webClientBuilder;
     private final ObjectMapper objectMapper;
 
@@ -47,7 +50,9 @@ public class AiController {
     public Map<String, Object> analyzeMultipart(
             @RequestPart("image") MultipartFile image,
             @RequestPart("oauthId") String oauthId,
-            @RequestPart(value = "userSelectedType", required = false) String userSelectedType
+            @RequestPart(value = "userSelectedType", required = false) String userSelectedType,
+            @RequestPart(value = "latitude", required = false) String latitudeRaw,
+            @RequestPart(value = "longitude", required = false) String longitudeRaw
     ) throws Exception {
         if (geminiApiKey == null || geminiApiKey.isBlank()) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Gemini API key is not configured");
@@ -125,6 +130,19 @@ public class AiController {
 
         String normalizedUserPick = normalizeUserPick(userSelectedType);
         String finalType = normalizedUserPick != null ? normalizedUserPick : predicted;
+        Double latitude = toDoubleOrNull(latitudeRaw);
+        Double longitude = toDoubleOrNull(longitudeRaw);
+
+        recognitionEventRepository.save(
+                RecognitionEvent.builder()
+                        .user(user)
+                        .predictedType(predicted)
+                        .finalType(finalType)
+                        .latitude(latitude)
+                        .longitude(longitude)
+                        .sector(inferGwangjuSector(latitude, longitude))
+                        .build()
+        );
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("predictedType", predicted);
@@ -341,5 +359,23 @@ public class AiController {
                 2. 재질별 기준에 맞게 분리합니다.
                 3. 지정된 배출 시간과 장소에 맞춰 배출합니다.
                 """.formatted(target, locationHint);
+    }
+
+    private Double toDoubleOrNull(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return Double.parseDouble(raw.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private String inferGwangjuSector(Double lat, Double lon) {
+        if (lat == null || lon == null) return "광주광역시(근사)";
+        if (lat >= 35.16) return "광주광역시 북구(근사)";
+        if (lon <= 126.88) return "광주광역시 광산구(근사)";
+        if (lat <= 35.14 && lon <= 126.91) return "광주광역시 서구(근사)";
+        if (lat <= 35.14 && lon > 126.91) return "광주광역시 남구(근사)";
+        return "광주광역시 동구(근사)";
     }
 }

@@ -14,13 +14,11 @@ import { useNavigate } from "react-router-dom";
 import RoomRoundedIcon from "@mui/icons-material/RoomRounded";
 import CameraswitchRoundedIcon from "@mui/icons-material/CameraswitchRounded";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
-import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
 import {
   MapContainer,
   Marker,
   Popup,
   TileLayer,
-  CircleMarker,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -119,16 +117,16 @@ const inferGwangjuArea = (lat, lon) => {
   return "광주광역시 동구(근사)";
 };
 
-const createModuleIcon = (type) =>
+const createModuleIcon = (type, highlighted = false) =>
   L.divIcon({
     html:
       type === "CAN"
-        ? '<div style="width:30px;height:30px;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,0.25);">🥫</div>'
-        : '<div style="width:30px;height:30px;border-radius:50%;background:#0ea5e9;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,0.25);">♻️</div>',
+        ? `<div style="width:${highlighted ? 38 : 30}px;height:${highlighted ? 38 : 30}px;border-radius:50%;background:${highlighted ? "#f59e0b" : "#111"};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${highlighted ? 20 : 16}px;box-shadow:${highlighted ? "0 0 0 8px rgba(245,158,11,0.35), 0 6px 18px rgba(245,158,11,0.5)" : "0 3px 10px rgba(0,0,0,0.25)"};">🥫</div>`
+        : `<div style="width:${highlighted ? 38 : 30}px;height:${highlighted ? 38 : 30}px;border-radius:50%;background:${highlighted ? "#22c55e" : "#0ea5e9"};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${highlighted ? 20 : 16}px;box-shadow:${highlighted ? "0 0 0 8px rgba(34,197,94,0.35), 0 6px 18px rgba(34,197,94,0.5)" : "0 3px 10px rgba(0,0,0,0.25)"};">♻️</div>`,
     className: "",
-    iconSize: [30, 30],
-    iconAnchor: [15, 30],
-    popupAnchor: [0, -26],
+    iconSize: [highlighted ? 38 : 30, highlighted ? 38 : 30],
+    iconAnchor: [highlighted ? 19 : 15, highlighted ? 38 : 30],
+    popupAnchor: [0, highlighted ? -34 : -26],
   });
 
 const MapPage = () => {
@@ -142,8 +140,6 @@ const MapPage = () => {
   const [error, setError] = useState("");
 
   const [modules, setModules] = useState([]);
-  const [records, setRecords] = useState([]);
-  const [showHeat, setShowHeat] = useState(false);
 
   const cameraInputRef = useRef(null);
   const [file, setFile] = useState(null);
@@ -181,12 +177,6 @@ const MapPage = () => {
       setError("");
       const moduleList = await apiFetch("/modules");
       setModules(Array.isArray(moduleList) ? moduleList : []);
-      try {
-        const overview = await apiFetch("/admin/overview");
-        setRecords(Array.isArray(overview?.disposalRecords) ? overview.disposalRecords : []);
-      } catch {
-        setRecords([]);
-      }
     } catch (e) {
       setError(e.message || "지도 데이터를 불러오지 못했습니다.");
     } finally {
@@ -198,38 +188,11 @@ const MapPage = () => {
     loadData();
   }, []);
 
-  const moduleById = useMemo(() => {
-    const map = new Map();
-    modules.forEach((m) => map.set(String(m.id), m));
-    GWANGJU_REVERSE_VENDING.forEach((m) => {
-      if (!map.has(String(m.id))) {
-        map.set(String(m.id), m);
-      }
-    });
-    return map;
-  }, [modules]);
-
   const mapModules = useMemo(() => {
     const serialSet = new Set(modules.map((m) => m.serialNumber));
     const virtual = GWANGJU_REVERSE_VENDING.filter((m) => !serialSet.has(m.serialNumber));
     return [...modules, ...virtual];
   }, [modules]);
-
-  const heatPoints = useMemo(() => {
-    const bucket = new Map();
-    records.forEach((r) => {
-      const mod = moduleById.get(String(r.moduleId));
-      if (!mod) return;
-      const lat = toNumber(mod.lat);
-      const lon = toNumber(mod.lon);
-      if (lat == null || lon == null) return;
-      const key = `${lat.toFixed(5)}:${lon.toFixed(5)}`;
-      const current = bucket.get(key) || { lat, lon, count: 0 };
-      current.count += 1;
-      bucket.set(key, current);
-    });
-    return Array.from(bucket.values());
-  }, [records, moduleById]);
 
   const center = myPos || FALLBACK_CENTER;
   const approxArea = inferGwangjuArea(myPos?.[0], myPos?.[1]);
@@ -270,6 +233,10 @@ const MapPage = () => {
       const fd = new FormData();
       fd.append("image", file);
       fd.append("oauthId", oauthId);
+      if (myPos?.[0] != null && myPos?.[1] != null) {
+        fd.append("latitude", String(myPos[0]));
+        fd.append("longitude", String(myPos[1]));
+      }
       const res = await apiFetchMultipart("/ai/analyze", fd);
       setAnalysis(res);
       const nextWasteType = res?.finalType || res?.predictedType || "GENERAL";
@@ -304,20 +271,6 @@ const MapPage = () => {
                 </Typography>
               </Box>
               <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                <Button
-                  variant={showHeat ? "contained" : "outlined"}
-                  startIcon={<TimelineRoundedIcon />}
-                  onClick={() => setShowHeat((v) => !v)}
-                  sx={{
-                    borderColor: "#cbd5e1",
-                    color: showHeat ? "#fff" : "#0f172a",
-                    bgcolor: showHeat ? "#0f172a" : "#fff",
-                    textTransform: "none",
-                    fontWeight: 700,
-                  }}
-                >
-                  이력확인
-                </Button>
                 <Button
                   variant="outlined"
                   startIcon={<AdminPanelSettingsRoundedIcon />}
@@ -367,7 +320,14 @@ const MapPage = () => {
                     const lon = toNumber(m.lon);
                     if (lat == null || lon == null) return null;
                     return (
-                      <Marker key={m.id} position={[lat, lon]} icon={createModuleIcon(m.type)}>
+                      <Marker
+                        key={m.id}
+                        position={[lat, lon]}
+                        icon={createModuleIcon(
+                          m.type,
+                          (analysis?.finalType || analysis?.predictedType) === m.type
+                        )}
+                      >
                         <Popup>
                           <strong>{m.serialNumber}</strong>
                           <br />
@@ -379,21 +339,6 @@ const MapPage = () => {
                     );
                   })}
 
-                  {showHeat &&
-                    heatPoints.map((p, idx) => (
-                      <CircleMarker
-                        key={`${p.lat}-${p.lon}-${idx}`}
-                        center={[p.lat, p.lon]}
-                        radius={Math.min(24, 6 + p.count * 1.4)}
-                        pathOptions={{
-                          color: "#fb7185",
-                          fillColor: "#f43f5e",
-                          fillOpacity: 0.28,
-                        }}
-                      >
-                        <Popup>이 위치 배출 기록: {p.count}건</Popup>
-                      </CircleMarker>
-                    ))}
                 </MapContainer>
               )}
             </Paper>

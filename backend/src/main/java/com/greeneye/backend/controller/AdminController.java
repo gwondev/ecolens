@@ -2,9 +2,11 @@ package com.greeneye.backend.controller;
 
 import com.greeneye.backend.entity.DisposalRecord;
 import com.greeneye.backend.entity.Module;
+import com.greeneye.backend.entity.RecognitionEvent;
 import com.greeneye.backend.entity.User;
 import com.greeneye.backend.repository.DisposalRecordRepository;
 import com.greeneye.backend.repository.ModuleRepository;
+import com.greeneye.backend.repository.RecognitionEventRepository;
 import com.greeneye.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,17 +24,20 @@ public class AdminController {
     private final UserRepository userRepository;
     private final ModuleRepository moduleRepository;
     private final DisposalRecordRepository disposalRecordRepository;
+    private final RecognitionEventRepository recognitionEventRepository;
 
     @GetMapping("/overview")
     public Map<String, Object> overview() {
         List<User> users = userRepository.findAll();
         List<Module> modules = moduleRepository.findAll();
         List<DisposalRecord> records = disposalRecordRepository.findAll();
+        List<RecognitionEvent> recognitionEvents = recognitionEventRepository.findTop300ByOrderByCreatedAtDesc();
 
         return Map.of(
                 "users", users.stream().map(this::toUserDto).toList(),
                 "modules", modules.stream().map(this::toModuleDto).toList(),
-                "disposalRecords", records.stream().map(this::toRecordDto).toList()
+                "disposalRecords", records.stream().map(this::toRecordDto).toList(),
+                "recognitionEvents", recognitionEvents.stream().map(this::toRecognitionEventDto).toList()
         );
     }
 
@@ -74,6 +79,19 @@ public class AdminController {
         dto.put("status", record.getStatus());
         dto.put("createdAt", record.getCreatedAt());
         dto.put("verifiedAt", record.getVerifiedAt());
+        return dto;
+    }
+
+    private Map<String, Object> toRecognitionEventDto(RecognitionEvent event) {
+        Map<String, Object> dto = new LinkedHashMap<>();
+        dto.put("id", event.getId());
+        dto.put("userId", event.getUser() == null ? null : event.getUser().getId());
+        dto.put("predictedType", event.getPredictedType());
+        dto.put("finalType", event.getFinalType());
+        dto.put("latitude", event.getLatitude());
+        dto.put("longitude", event.getLongitude());
+        dto.put("sector", event.getSector());
+        dto.put("createdAt", event.getCreatedAt());
         return dto;
     }
 }
