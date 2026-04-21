@@ -23,6 +23,16 @@ const scanline = keyframes`
   100% { background-position: 0 220px; }
 `;
 
+const floatY = keyframes`
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+`;
+
+const shimmer = keyframes`
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+`;
+
 const Root = () => {
   const navigate = useNavigate();
   const user = getUser();
@@ -142,7 +152,16 @@ const Root = () => {
               }}
             />
             <Stack spacing={2.5} alignItems="center">
-              <Box sx={{ position: "relative", width: "fit-content", px: 1.5, py: 1 }}>
+              <Box sx={{ position: "relative", width: "fit-content", px: 1.5, py: 1, animation: `${floatY} 4.2s ease-in-out infinite` }}>
+                <Box
+                  sx={{
+                    position: "absolute",
+                    inset: "-12px -20px",
+                    borderRadius: "999px",
+                    background: "linear-gradient(120deg, #111 0%, #2a2a2a 40%, #111 100%)",
+                    boxShadow: "0 8px 26px rgba(0,0,0,0.2)",
+                  }}
+                />
                 <Box
                   sx={{
                     position: "absolute",
@@ -154,11 +173,16 @@ const Root = () => {
                 />
                 <Typography
                   sx={{
+                    position: "relative",
                     fontSize: { xs: "2.4rem", sm: "3.6rem" },
                     fontWeight: 900,
                     letterSpacing: "0.11em",
-                    color: "#ffffff",
-                    textShadow: "0 2px 14px rgba(0,0,0,0.45)",
+                    color: "transparent",
+                    backgroundImage: "linear-gradient(90deg, #fff 20%, #d8d8d8 48%, #fff 78%)",
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    backgroundSize: "220% auto",
+                    animation: `${shimmer} 3.6s linear infinite`,
                   }}
                 >
                   ECOLENS

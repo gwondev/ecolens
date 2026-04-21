@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   CircularProgress,
   Container,
   Divider,
@@ -111,6 +110,18 @@ const toNumber = (v) => {
   return Number.isFinite(n) ? n : null;
 };
 
+const createModuleIcon = (type) =>
+  L.divIcon({
+    html:
+      type === "CAN"
+        ? '<div style="width:30px;height:30px;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,0.25);">🥫</div>'
+        : '<div style="width:30px;height:30px;border-radius:50%;background:#0ea5e9;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,0.25);">♻️</div>',
+    className: "",
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -26],
+  });
+
 const MapPage = () => {
   const navigate = useNavigate();
   const user = getUser();
@@ -133,7 +144,6 @@ const MapPage = () => {
   const [analysis, setAnalysis] = useState(null);
   const [guide, setGuide] = useState("");
   const [guideLoading, setGuideLoading] = useState(false);
-  const [overrideType, setOverrideType] = useState(null);
 
   useEffect(() => {
     if (!oauthId) {
@@ -214,9 +224,6 @@ const MapPage = () => {
   }, [records, moduleById]);
 
   const center = myPos || FALLBACK_CENTER;
-  const selectedWasteType =
-    overrideType || analysis?.finalType || analysis?.predictedType || "GENERAL";
-
   const loadGuideForType = async (wasteType) => {
     try {
       setGuideLoading(true);
@@ -243,7 +250,6 @@ const MapPage = () => {
     setFile(f);
     setAnalysis(null);
     setGuide("");
-    setOverrideType(null);
     setPreview(URL.createObjectURL(f));
   };
 
@@ -254,37 +260,14 @@ const MapPage = () => {
       const fd = new FormData();
       fd.append("image", file);
       fd.append("oauthId", oauthId);
-      if (overrideType) {
-        fd.append("userSelectedType", overrideType);
-      }
       const res = await apiFetchMultipart("/ai/analyze", fd);
       setAnalysis(res);
-      const nextWasteType = overrideType || res?.finalType || res?.predictedType || "GENERAL";
+      const nextWasteType = res?.finalType || res?.predictedType || "GENERAL";
       await loadGuideForType(nextWasteType);
     } catch (e) {
       setError(e.message || "이미지 분석에 실패했습니다.");
     } finally {
       setAnalyzing(false);
-    }
-  };
-
-  const fetchGuide = async () => {
-    try {
-      setGuideLoading(true);
-      const payload = {
-        wasteType: selectedWasteType,
-        latitude: myPos?.[0] ?? "",
-        longitude: myPos?.[1] ?? "",
-      };
-      const res = await apiFetch("/ai/disposal-guide", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      setGuide(res?.guide || "안내를 불러오지 못했습니다.");
-    } catch (e) {
-      setError(e.message || "분리수거 안내를 가져오지 못했습니다.");
-    } finally {
-      setGuideLoading(false);
     }
   };
 
@@ -332,7 +315,7 @@ const MapPage = () => {
                     onClick={() => navigate("/manage")}
                     sx={{ borderColor: "#cbd5e1", color: "#0f172a", textTransform: "none", fontWeight: 700 }}
                   >
-                    DB 관리
+                    MANAGE
                   </Button>
                 )}
               </Stack>
@@ -345,19 +328,19 @@ const MapPage = () => {
             <Paper
               elevation={0}
               sx={{
-                flex: { xs: 1, lg: 1.05 },
+                flex: { xs: 1, lg: 1.35 },
                 border: "1px solid #e5e7eb",
                 borderRadius: 3,
                 overflow: "hidden",
-                minHeight: 520,
+                minHeight: 620,
               }}
             >
               {loading ? (
-                <Stack alignItems="center" justifyContent="center" sx={{ height: 520 }}>
+                <Stack alignItems="center" justifyContent="center" sx={{ height: 620 }}>
                   <CircularProgress />
                 </Stack>
               ) : (
-                <MapContainer center={center} zoom={16} style={{ height: 520, width: "100%" }}>
+                <MapContainer center={center} zoom={16} style={{ height: 620, width: "100%" }}>
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -376,7 +359,7 @@ const MapPage = () => {
                     const lon = toNumber(m.lon);
                     if (lat == null || lon == null) return null;
                     return (
-                      <Marker key={m.id} position={[lat, lon]}>
+                      <Marker key={m.id} position={[lat, lon]} icon={createModuleIcon(m.type)}>
                         <Popup>
                           <strong>{m.serialNumber}</strong>
                           <br />
@@ -458,23 +441,6 @@ const MapPage = () => {
                     }}
                   />
                 )}
-
-                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                  {Object.entries(TYPE_LABELS).map(([key, label]) => (
-                    <Chip
-                      key={key}
-                      label={label}
-                      onClick={() => setOverrideType(key)}
-                      variant={overrideType === key ? "filled" : "outlined"}
-                      sx={{
-                        bgcolor: overrideType === key ? "#0f172a" : "#fff",
-                        color: overrideType === key ? "#fff" : "#0f172a",
-                        borderColor: "#cbd5e1",
-                        fontWeight: 700,
-                      }}
-                    />
-                  ))}
-                </Stack>
 
                 <Button
                   variant="contained"

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Alert,
   Box,
@@ -45,6 +45,10 @@ const cellBody = {
 };
 
 const MODULE_STATUS_OPTIONS = ["DEFAULT", "READY", "CHECK", "FULL"];
+const toNumber = (v) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
 
 const Manage = () => {
   const navigate = useNavigate();
@@ -81,6 +85,46 @@ const Manage = () => {
   });
   const [moduleDeleteTarget, setModuleDeleteTarget] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  const moduleMap = useMemo(() => {
+    const m = new Map();
+    overview.modules.forEach((mod) => m.set(mod.id, mod));
+    return m;
+  }, [overview.modules]);
+
+  const recentRecognitionByCoord = useMemo(() => {
+    return [...overview.disposalRecords]
+      .sort((a, b) => b.id - a.id)
+      .slice(0, 10)
+      .map((record) => {
+        const mod = moduleMap.get(record.moduleId);
+        const lat = toNumber(mod?.lat);
+        const lon = toNumber(mod?.lon);
+        return {
+          id: record.id,
+          moduleId: record.moduleId,
+          moduleType: mod?.type || "-",
+          lat: lat == null ? "-" : lat.toFixed(5),
+          lon: lon == null ? "-" : lon.toFixed(5),
+          status: record.status || "-",
+        };
+      });
+  }, [overview.disposalRecords, moduleMap]);
+
+  const sectorSummary = useMemo(() => {
+    const counts = new Map();
+    overview.disposalRecords.forEach((record) => {
+      const mod = moduleMap.get(record.moduleId);
+      const lat = toNumber(mod?.lat);
+      const lon = toNumber(mod?.lon);
+      if (lat == null || lon == null) return;
+      const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .map(([sector, count]) => ({ sector, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [overview.disposalRecords, moduleMap]);
 
   const loadOverview = useCallback(async () => {
     try {
@@ -413,6 +457,58 @@ const Manage = () => {
         </Paper>
 
         <Divider sx={{ borderColor: "#e2e8f0", my: 2 }} />
+
+        <Paper sx={{ p: { xs: 1.25, sm: 2 }, mb: 2, bgcolor: "#ffffff", border: "1px solid #e2e8f0", overflowX: "auto" }}>
+          <Typography sx={{ color: "#0f172a", fontWeight: 800, mb: 1.2, fontSize: { xs: "0.85rem", sm: "1rem" } }}>
+            좌표별 인식 발생 회수 (최근 10건)
+          </Typography>
+          <Table size="small" sx={{ tableLayout: "fixed", minWidth: 0 }}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={cellHead}>기록ID</TableCell>
+                <TableCell sx={cellHead}>모듈ID</TableCell>
+                <TableCell sx={cellHead}>타입</TableCell>
+                <TableCell sx={cellHead}>LAT</TableCell>
+                <TableCell sx={cellHead}>LON</TableCell>
+                <TableCell sx={cellHead}>상태</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {recentRecognitionByCoord.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell sx={cellBody}>{row.id}</TableCell>
+                  <TableCell sx={cellBody}>{row.moduleId}</TableCell>
+                  <TableCell sx={cellBody}>{row.moduleType}</TableCell>
+                  <TableCell sx={cellBody}>{row.lat}</TableCell>
+                  <TableCell sx={cellBody}>{row.lon}</TableCell>
+                  <TableCell sx={cellBody}>{row.status}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Paper>
+
+        <Paper sx={{ p: { xs: 1.25, sm: 2 }, mb: 2, bgcolor: "#ffffff", border: "1px solid #e2e8f0", overflowX: "auto" }}>
+          <Typography sx={{ color: "#0f172a", fontWeight: 800, mb: 1.2, fontSize: { xs: "0.85rem", sm: "1rem" } }}>
+            섹터별 인식 집계
+          </Typography>
+          <Table size="small" sx={{ tableLayout: "fixed", minWidth: 0 }}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={cellHead}>섹터 (lat,lon)</TableCell>
+                <TableCell sx={cellHead}>발생 회수</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {sectorSummary.slice(0, 12).map((s) => (
+                <TableRow key={s.sector}>
+                  <TableCell sx={cellBody}>{s.sector}</TableCell>
+                  <TableCell sx={cellBody}>{s.count}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Paper>
 
         <Paper sx={{ p: { xs: 1.25, sm: 2 }, bgcolor: "#ffffff", border: "1px solid #e2e8f0", maxHeight: { xs: 300, sm: 360 }, overflow: "auto", WebkitOverflowScrolling: "touch" }}>
           <Typography sx={{ color: "#0f172a", fontWeight: 800, mb: 1, fontSize: { xs: "0.85rem", sm: "1rem" } }}>배출 기록(최근)</Typography>
