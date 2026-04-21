@@ -8,6 +8,7 @@ import {
   Divider,
   Paper,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -55,6 +56,19 @@ const inferGwangjuArea = (lat, lon) => {
   return "광주광역시 동구(근사)";
 };
 
+const deriveSubjectFromAnalysis = (rawSnippet) => {
+  if (!rawSnippet) return "업로드한 항목";
+  const lines = rawSnippet
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const candidate = lines.find(
+    (line) => !["CAN", "PET", "GENERAL", "HAZARD"].includes(line.toUpperCase())
+  );
+  if (!candidate) return "업로드한 항목";
+  return candidate.replace(/^\d+\)\s*/, "").slice(0, 40);
+};
+
 const createModuleIcon = (type, highlighted = false) =>
   L.divIcon({
     html:
@@ -86,6 +100,8 @@ const MapPage = () => {
   const [analysis, setAnalysis] = useState(null);
   const [guide, setGuide] = useState("");
   const [guideLoading, setGuideLoading] = useState(false);
+  const [guideSubject, setGuideSubject] = useState("");
+  const [textWasteInput, setTextWasteInput] = useState("");
 
   useEffect(() => {
     if (!oauthId) {
@@ -130,11 +146,12 @@ const MapPage = () => {
 
   const center = myPos || FALLBACK_CENTER;
   const approxArea = inferGwangjuArea(myPos?.[0], myPos?.[1]);
-  const loadGuideForType = async (wasteType) => {
+  const loadGuideForType = async (wasteType, itemName = "") => {
     try {
       setGuideLoading(true);
       const payload = {
         wasteType,
+        itemName,
         latitude: myPos?.[0] ?? "",
         longitude: myPos?.[1] ?? "",
       };
@@ -157,6 +174,7 @@ const MapPage = () => {
     setFile(f);
     setAnalysis(null);
     setGuide("");
+    setGuideSubject("");
     setPreview(URL.createObjectURL(f));
   };
 
@@ -173,13 +191,31 @@ const MapPage = () => {
       }
       const res = await apiFetchMultipart("/ai/analyze", fd);
       setAnalysis(res);
+      const detectedSubject = deriveSubjectFromAnalysis(res?.rawSnippet);
+      setGuideSubject(detectedSubject);
       const nextWasteType = res?.finalType || res?.predictedType || "GENERAL";
-      await loadGuideForType(nextWasteType);
+      await loadGuideForType(nextWasteType, detectedSubject);
     } catch (e) {
       setError(e.message || "이미지 분석에 실패했습니다.");
     } finally {
       setAnalyzing(false);
     }
+  };
+
+  const detectTypeFromText = (text) => {
+    const v = text.toLowerCase();
+    if (v.includes("캔") || v.includes("can")) return "CAN";
+    if (v.includes("페트") || v.includes("플라") || v.includes("pet") || v.includes("plastic")) return "PET";
+    if (v.includes("배터리") || v.includes("형광등") || v.includes("스프레이") || v.includes("hazard")) return "HAZARD";
+    return "GENERAL";
+  };
+
+  const getGuideFromText = async () => {
+    const subject = textWasteInput.trim();
+    if (!subject) return;
+    const inferredType = detectTypeFromText(subject);
+    setGuideSubject(subject);
+    await loadGuideForType(inferredType, subject);
   };
 
   return (
@@ -227,15 +263,15 @@ const MapPage = () => {
                 border: "1px solid #e5e7eb",
                 borderRadius: 3,
                 overflow: "hidden",
-                minHeight: 620,
+                height: { xs: 520, lg: 720 },
               }}
             >
               {loading ? (
-                <Stack alignItems="center" justifyContent="center" sx={{ height: 620 }}>
+                <Stack alignItems="center" justifyContent="center" sx={{ height: "100%" }}>
                   <CircularProgress />
                 </Stack>
               ) : (
-                <MapContainer center={center} zoom={16} style={{ height: 620, width: "100%" }}>
+                <MapContainer center={center} zoom={16} style={{ height: "100%", width: "100%" }}>
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -294,6 +330,26 @@ const MapPage = () => {
                 <Typography sx={{ color: "#64748b", fontSize: "0.9rem" }}>
                   사진 업로드 후 Gemini API로 폐기물 분류를 진행하고, 결과와 함께 분리배출 방법을 바로 보여줍니다.
                 </Typography>
+
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={textWasteInput}
+                    onChange={(e) => setTextWasteInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") getGuideFromText();
+                    }}
+                    placeholder="텍스트 입력 (예: 마우스, 고장난 이어폰, 스팸캔)"
+                  />
+                  <Button
+                    variant="outlined"
+                    onClick={getGuideFromText}
+                    sx={{ minWidth: 120, borderColor: "#cbd5e1", color: "#0f172a", textTransform: "none", fontWeight: 700 }}
+                  >
+                    텍스트 안내
+                  </Button>
+                </Stack>
 
                 <input
                   ref={cameraInputRef}
@@ -356,7 +412,7 @@ const MapPage = () => {
                   <Paper elevation={0} sx={{ border: "1px solid #e2e8f0", borderRadius: 2, p: 1.5, bgcolor: "#f8fafc" }}>
                     <Typography sx={{ fontWeight: 700, mb: 0.8 }}>
                       <RoomRoundedIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: "text-top" }} />
-                      지금 지역에 기반한 분리수거 배출방법 - {approxArea}
+                      {guideSubject ? `${guideSubject} 분리수거 배출방법 - ${approxArea}` : `지금 지역에 기반한 분리수거 배출방법 - ${approxArea}`}
                     </Typography>
                     <Typography sx={{ whiteSpace: "pre-wrap", color: "#334155", fontSize: "0.88rem", lineHeight: 1.55 }}>
                       {guide}

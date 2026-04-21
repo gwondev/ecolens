@@ -197,6 +197,7 @@ public class AiController {
     public Map<String, Object> disposalGuide(@RequestBody Map<String, Object> body) {
         String wasteTypeRaw = Objects.toString(body.get("wasteType"), "GENERAL");
         String wasteType = normalizeTypeToken(wasteTypeRaw);
+        String itemName = Objects.toString(body.get("itemName"), "").trim();
         String latitude = Objects.toString(body.get("latitude"), "");
         String longitude = Objects.toString(body.get("longitude"), "");
 
@@ -215,15 +216,17 @@ public class AiController {
                 한국에서 통용되는 일반적인 분리배출 기준을 아는 전문가처럼 단정형 문장으로 안내하라.
                 마크다운 서식(**, ##, -, *)은 사용하지 말고 일반 텍스트로만 작성하라.
                 과장 없이 실천 가능한 안내를 하라.
+                사용자가 준 항목명이 있으면 반드시 그 항목명을 중심으로 안내하라.
 
                 분류: %s
+                항목명: %s
                 위치: %s
-                """.formatted(wasteType, locationHint);
+                """.formatted(wasteType, itemName.isBlank() ? "없음" : itemName, locationHint);
 
         if (geminiApiKey == null || geminiApiKey.isBlank()) {
             Map<String, Object> fallback = new LinkedHashMap<>();
             fallback.put("wasteType", wasteType);
-            fallback.put("guide", fallbackGuide(wasteType, locationHint));
+            fallback.put("guide", fallbackGuide(wasteType, itemName, locationHint));
             return fallback;
         }
 
@@ -250,7 +253,7 @@ public class AiController {
             JsonNode root = objectMapper.readTree(raw == null ? "" : raw);
             String text = extractGeminiText(root);
             if (text == null || text.isBlank()) {
-                text = fallbackGuide(wasteType, locationHint);
+                text = fallbackGuide(wasteType, itemName, locationHint);
             }
 
             Map<String, Object> result = new LinkedHashMap<>();
@@ -260,7 +263,7 @@ public class AiController {
         } catch (Exception e) {
             Map<String, Object> fallback = new LinkedHashMap<>();
             fallback.put("wasteType", wasteType);
-            fallback.put("guide", fallbackGuide(wasteType, locationHint));
+            fallback.put("guide", fallbackGuide(wasteType, itemName, locationHint));
             return fallback;
         }
     }
@@ -342,13 +345,14 @@ public class AiController {
         };
     }
 
-    private String fallbackGuide(String wasteType, String locationHint) {
+    private String fallbackGuide(String wasteType, String itemName, String locationHint) {
         String target = switch (wasteType) {
             case "CAN" -> "캔류";
             case "PET" -> "페트/플라스틱 병류";
             case "HAZARD" -> "유해폐기물";
             default -> "일반쓰레기";
         };
+        String subject = (itemName == null || itemName.isBlank()) ? target : itemName;
         return """
                 1) 배출 대상: %s
                 2) 배출 주의사항:
@@ -358,7 +362,7 @@ public class AiController {
                 1. 내용물을 비우고 이물질을 제거합니다.
                 2. 재질별 기준에 맞게 분리합니다.
                 3. 지정된 배출 시간과 장소에 맞춰 배출합니다.
-                """.formatted(target, locationHint);
+                """.formatted(subject, locationHint);
     }
 
     private Double toDoubleOrNull(String raw) {
