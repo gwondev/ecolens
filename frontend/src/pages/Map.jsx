@@ -40,68 +40,6 @@ const TYPE_LABELS = {
 };
 
 const FALLBACK_CENTER = [35.1469, 126.9228];
-const GWANGJU_REVERSE_VENDING = [
-  {
-    id: "gwangju-rvm-1",
-    serialNumber: "GJ-RVM-CAN-01",
-    organization: "GWANGJU_CITY",
-    lat: 35.15987,
-    lon: 126.8526,
-    type: "CAN",
-    status: "READY",
-    totalDisposalCount: 0,
-  },
-  {
-    id: "gwangju-rvm-2",
-    serialNumber: "GJ-RVM-PET-01",
-    organization: "GWANGJU_CITY",
-    lat: 35.14669,
-    lon: 126.92227,
-    type: "PET",
-    status: "READY",
-    totalDisposalCount: 0,
-  },
-  {
-    id: "gwangju-rvm-3",
-    serialNumber: "GJ-RVM-CAN-02",
-    organization: "GWANGJU_CITY",
-    lat: 35.15412,
-    lon: 126.91374,
-    type: "CAN",
-    status: "READY",
-    totalDisposalCount: 0,
-  },
-  {
-    id: "gwangju-rvm-4",
-    serialNumber: "GJ-RVM-PET-02",
-    organization: "GWANGJU_CITY",
-    lat: 35.13248,
-    lon: 126.90216,
-    type: "PET",
-    status: "READY",
-    totalDisposalCount: 0,
-  },
-  {
-    id: "gwangju-rvm-5",
-    serialNumber: "GJ-RVM-CAN-03",
-    organization: "GWANGJU_CITY",
-    lat: 35.1786,
-    lon: 126.9114,
-    type: "CAN",
-    status: "READY",
-    totalDisposalCount: 0,
-  },
-  {
-    id: "gwangju-rvm-6",
-    serialNumber: "GJ-RVM-PET-03",
-    organization: "GWANGJU_CITY",
-    lat: 35.16602,
-    lon: 126.87995,
-    type: "PET",
-    status: "READY",
-    totalDisposalCount: 0,
-  },
-];
 
 const toNumber = (v) => {
   const n = Number(v);
@@ -188,11 +126,7 @@ const MapPage = () => {
     loadData();
   }, []);
 
-  const mapModules = useMemo(() => {
-    const serialSet = new Set(modules.map((m) => m.serialNumber));
-    const virtual = GWANGJU_REVERSE_VENDING.filter((m) => !serialSet.has(m.serialNumber));
-    return [...modules, ...virtual];
-  }, [modules]);
+  const mapModules = useMemo(() => modules, [modules]);
 
   const center = myPos || FALLBACK_CENTER;
   const approxArea = inferGwangjuArea(myPos?.[0], myPos?.[1]);
@@ -331,7 +265,7 @@ const MapPage = () => {
                         <Popup>
                           <strong>{m.serialNumber}</strong>
                           <br />
-                          {m.type === "CAN" ? "캔 순환자원 무인회수기" : "플라스틱 순환자원 무인회수기"}
+                          {m.type === "CAN" ? "캔 자판기" : "플라스틱 자판기"}
                           <br />
                           지자체 설치 위치 안내
                         </Popup>
@@ -433,10 +367,10 @@ const MapPage = () => {
                 <Divider />
 
                 <Typography sx={{ fontWeight: 700 }}>
-                  근처 수거 포인트: {mapModules.length}개
+                  근처 자판기: {mapModules.length}개
                 </Typography>
                 <Typography sx={{ color: "#64748b", fontSize: "0.85rem" }}>
-                  지도 마커에서 광주광역시 지자체 설치 회수 포인트 위치를 확인할 수 있습니다.
+                  지도 마커에서 광주광역시 지자체 설치 자판기 위치를 확인할 수 있습니다.
                 </Typography>
               </Stack>
             </Paper>
