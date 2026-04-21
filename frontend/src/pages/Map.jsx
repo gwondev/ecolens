@@ -43,6 +43,28 @@ const TYPE_LABELS = {
 };
 
 const FALLBACK_CENTER = [35.1469, 126.9228];
+const GWANGJU_REVERSE_VENDING = [
+  {
+    id: "gwangju-rvm-1",
+    serialNumber: "GJ-RVM-CAN-01",
+    organization: "GWANGJU_CITY",
+    lat: 35.15987,
+    lon: 126.8526,
+    type: "CAN",
+    status: "READY",
+    totalDisposalCount: 0,
+  },
+  {
+    id: "gwangju-rvm-2",
+    serialNumber: "GJ-RVM-PET-01",
+    organization: "GWANGJU_CITY",
+    lat: 35.14669,
+    lon: 126.92227,
+    type: "PET",
+    status: "READY",
+    totalDisposalCount: 0,
+  },
+];
 
 const toNumber = (v) => {
   const n = Number(v);
@@ -120,14 +142,25 @@ const MapPage = () => {
 
   const moduleById = useMemo(() => {
     const map = new Map();
-    modules.forEach((m) => map.set(m.id, m));
+    modules.forEach((m) => map.set(String(m.id), m));
+    GWANGJU_REVERSE_VENDING.forEach((m) => {
+      if (!map.has(String(m.id))) {
+        map.set(String(m.id), m);
+      }
+    });
     return map;
+  }, [modules]);
+
+  const mapModules = useMemo(() => {
+    const serialSet = new Set(modules.map((m) => m.serialNumber));
+    const virtual = GWANGJU_REVERSE_VENDING.filter((m) => !serialSet.has(m.serialNumber));
+    return [...modules, ...virtual];
   }, [modules]);
 
   const heatPoints = useMemo(() => {
     const bucket = new Map();
     records.forEach((r) => {
-      const mod = moduleById.get(r.moduleId);
+      const mod = moduleById.get(String(r.moduleId));
       if (!mod) return;
       const lat = toNumber(mod.lat);
       const lon = toNumber(mod.lon);
@@ -212,7 +245,7 @@ const MapPage = () => {
                   반가워요, {user?.nickname || "green-user"}님
                 </Typography>
                 <Typography sx={{ color: "#64748b", mt: 0.5 }}>
-                  지도에서 수거 포인트를 확인하고, 사진 촬영 후 지역 맞춤 분리수거 안내를 받아보세요.
+                  지도에서 수거 포인트를 확인하고, 사진 촬영 후 바로 분리배출 안내를 받아보세요.
                 </Typography>
               </Box>
               <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
@@ -250,19 +283,19 @@ const MapPage = () => {
             <Paper
               elevation={0}
               sx={{
-                flex: 1.5,
+                flex: { xs: 1, lg: 1.05 },
                 border: "1px solid #e5e7eb",
                 borderRadius: 3,
                 overflow: "hidden",
-                minHeight: 560,
+                minHeight: 520,
               }}
             >
               {loading ? (
-                <Stack alignItems="center" justifyContent="center" sx={{ height: 560 }}>
+                <Stack alignItems="center" justifyContent="center" sx={{ height: 520 }}>
                   <CircularProgress />
                 </Stack>
               ) : (
-                <MapContainer center={center} zoom={16} style={{ height: 560, width: "100%" }}>
+                <MapContainer center={center} zoom={16} style={{ height: 520, width: "100%" }}>
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -276,7 +309,7 @@ const MapPage = () => {
                     </Marker>
                   )}
 
-                  {modules.map((m) => {
+                  {mapModules.map((m) => {
                     const lat = toNumber(m.lat);
                     const lon = toNumber(m.lon);
                     if (lat == null || lon == null) return null;
@@ -321,7 +354,7 @@ const MapPage = () => {
                 border: "1px solid #e5e7eb",
                 borderRadius: 3,
                 p: 2,
-                minHeight: 560,
+                minHeight: 520,
               }}
             >
               <Stack spacing={1.4}>
@@ -329,7 +362,7 @@ const MapPage = () => {
                   AI 분리수거 도우미
                 </Typography>
                 <Typography sx={{ color: "#64748b", fontSize: "0.9rem" }}>
-                  사진 업로드 후 Gemini API로 폐기물 분류를 진행하고, 현재 위치 기준 안내를 받습니다.
+                  사진 업로드 후 Gemini API로 폐기물 분류를 진행하고, 바로 실행할 분리배출 가이드를 제공합니다.
                 </Typography>
 
                 <input
@@ -354,7 +387,15 @@ const MapPage = () => {
                     component="img"
                     src={preview}
                     alt="waste preview"
-                    sx={{ width: "100%", borderRadius: 2, border: "1px solid #e2e8f0", maxHeight: 170, objectFit: "cover" }}
+                    sx={{
+                      width: "100%",
+                      borderRadius: 2,
+                      border: "1px solid #e2e8f0",
+                      maxHeight: 240,
+                      minHeight: 170,
+                      objectFit: "contain",
+                      bgcolor: "#f8fafc",
+                    }}
                   />
                 )}
 
@@ -404,14 +445,14 @@ const MapPage = () => {
                   disabled={guideLoading}
                   sx={{ borderColor: "#cbd5e1", color: "#0f172a", textTransform: "none", fontWeight: 700 }}
                 >
-                  {guideLoading ? "안내 생성 중..." : "위치 기반 분리수거 안내 받기"}
+                  {guideLoading ? "안내 생성 중..." : "분리배출 안내 받기"}
                 </Button>
 
                 {guide && (
                   <Paper elevation={0} sx={{ border: "1px solid #e2e8f0", borderRadius: 2, p: 1.5, bgcolor: "#f8fafc" }}>
                     <Typography sx={{ fontWeight: 700, mb: 0.8 }}>
                       <RoomRoundedIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: "text-top" }} />
-                      지역 맞춤 안내
+                      분리배출 안내
                     </Typography>
                     <Typography sx={{ whiteSpace: "pre-wrap", color: "#334155", fontSize: "0.88rem", lineHeight: 1.55 }}>
                       {guide}
@@ -422,10 +463,10 @@ const MapPage = () => {
                 <Divider />
 
                 <Typography sx={{ fontWeight: 700 }}>
-                  근처 수거 포인트: {modules.length}개
+                  근처 수거 포인트: {mapModules.length}개
                 </Typography>
                 <Typography sx={{ color: "#64748b", fontSize: "0.85rem" }}>
-                  지도 마커를 눌러 캔/플라스틱/PET 수거 모듈 상태와 누적 배출 횟수를 확인할 수 있습니다.
+                  지도 마커에서 캔/PET 수거 포인트와 광주 리버스벤딩(보상형) 자판기 위치를 확인할 수 있습니다.
                 </Typography>
               </Stack>
             </Paper>

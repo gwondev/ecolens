@@ -82,7 +82,41 @@ public class ModuleController {
                 .build();
         moduleRepository.save(g2);
 
-        return Map.of("seeded", true, "serialNumbers", List.of(g1.getSerialNumber(), g2.getSerialNumber()));
+        Module gjCan = Module.builder()
+                .serialNumber("gj-rvm-can-01")
+                .organization("GWANGJU_CITY")
+                .lat(35.1598700)
+                .lon(126.8526000)
+                .type("CAN")
+                .status("READY")
+                .totalDisposalCount(0)
+                .lastHeartbeat(LocalDateTime.now())
+                .build();
+        moduleRepository.save(gjCan);
+
+        Module gjPet = Module.builder()
+                .serialNumber("gj-rvm-pet-01")
+                .organization("GWANGJU_CITY")
+                .lat(35.1466900)
+                .lon(126.9222700)
+                .type("PET")
+                .status("READY")
+                .totalDisposalCount(0)
+                .lastHeartbeat(LocalDateTime.now())
+                .build();
+        moduleRepository.save(gjPet);
+
+        return Map.of(
+                "seeded",
+                true,
+                "serialNumbers",
+                List.of(
+                        g1.getSerialNumber(),
+                        g2.getSerialNumber(),
+                        gjCan.getSerialNumber(),
+                        gjPet.getSerialNumber()
+                )
+        );
     }
 
     private String stringOrDefault(Object raw, String fallback) {
