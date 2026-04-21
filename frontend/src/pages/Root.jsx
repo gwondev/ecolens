@@ -28,11 +28,6 @@ const floatY = keyframes`
   50% { transform: translateY(-8px); }
 `;
 
-const shimmer = keyframes`
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-`;
-
 const Root = () => {
   const navigate = useNavigate();
   const user = getUser();
@@ -156,15 +151,6 @@ const Root = () => {
                 <Box
                   sx={{
                     position: "absolute",
-                    inset: "-12px -20px",
-                    borderRadius: "999px",
-                    background: "linear-gradient(120deg, #111 0%, #2a2a2a 40%, #111 100%)",
-                    boxShadow: "0 8px 26px rgba(0,0,0,0.2)",
-                  }}
-                />
-                <Box
-                  sx={{
-                    position: "absolute",
                     inset: -10,
                     borderRadius: "999px",
                     border: "1px solid rgba(0,0,0,0.18)",
@@ -177,20 +163,13 @@ const Root = () => {
                     fontSize: { xs: "2.4rem", sm: "3.6rem" },
                     fontWeight: 900,
                     letterSpacing: "0.11em",
-                    color: "transparent",
-                    backgroundImage: "linear-gradient(90deg, #fff 20%, #d8d8d8 48%, #fff 78%)",
-                    backgroundClip: "text",
-                    WebkitBackgroundClip: "text",
-                    backgroundSize: "220% auto",
-                    animation: `${shimmer} 3.6s linear infinite`,
+                    color: "#111",
+                    textShadow: "0 6px 18px rgba(0,0,0,0.12)",
                   }}
                 >
                   ECOLENS
                 </Typography>
               </Box>
-              <Typography sx={{ fontSize: "0.86rem", color: "rgba(0,0,0,0.62)", letterSpacing: "0.18em", textTransform: "uppercase" }}>
-                Black and White Smart Recycling
-              </Typography>
               <Typography sx={{ fontSize: "1rem", color: "rgba(0,0,0,0.72)", lineHeight: 1.6 }}>
                 사진 인식과 지도 기반 수거 포인트를 한 화면에서 연결해요.
               </Typography>

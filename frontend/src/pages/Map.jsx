@@ -110,6 +110,15 @@ const toNumber = (v) => {
   return Number.isFinite(n) ? n : null;
 };
 
+const inferGwangjuArea = (lat, lon) => {
+  if (lat == null || lon == null) return "광주광역시(근사)";
+  if (lat >= 35.16) return "광주광역시 북구(근사)";
+  if (lon <= 126.88) return "광주광역시 광산구(근사)";
+  if (lat <= 35.14 && lon <= 126.91) return "광주광역시 서구(근사)";
+  if (lat <= 35.14 && lon > 126.91) return "광주광역시 남구(근사)";
+  return "광주광역시 동구(근사)";
+};
+
 const createModuleIcon = (type) =>
   L.divIcon({
     html:
@@ -126,7 +135,6 @@ const MapPage = () => {
   const navigate = useNavigate();
   const user = getUser();
   const oauthId = user?.oauthId;
-  const isAdmin = user?.role === "ADMIN";
 
   const [myPos, setMyPos] = useState(null);
   const [geoError, setGeoError] = useState("");
@@ -224,6 +232,7 @@ const MapPage = () => {
   }, [records, moduleById]);
 
   const center = myPos || FALLBACK_CENTER;
+  const approxArea = inferGwangjuArea(myPos?.[0], myPos?.[1]);
   const loadGuideForType = async (wasteType) => {
     try {
       setGuideLoading(true);
@@ -236,7 +245,8 @@ const MapPage = () => {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      setGuide(res?.guide || "안내를 불러오지 못했습니다.");
+      const cleanGuide = (res?.guide || "안내를 불러오지 못했습니다.").replace(/\*\*/g, "");
+      setGuide(cleanGuide);
     } catch (e) {
       setError(e.message || "분리수거 안내를 가져오지 못했습니다.");
     } finally {
@@ -308,16 +318,14 @@ const MapPage = () => {
                 >
                   이력확인
                 </Button>
-                {isAdmin && (
-                  <Button
-                    variant="outlined"
-                    startIcon={<AdminPanelSettingsRoundedIcon />}
-                    onClick={() => navigate("/manage")}
-                    sx={{ borderColor: "#cbd5e1", color: "#0f172a", textTransform: "none", fontWeight: 700 }}
-                  >
-                    MANAGE
-                  </Button>
-                )}
+                <Button
+                  variant="outlined"
+                  startIcon={<AdminPanelSettingsRoundedIcon />}
+                  onClick={() => navigate("/manage")}
+                  sx={{ borderColor: "#cbd5e1", color: "#0f172a", textTransform: "none", fontWeight: 700 }}
+                >
+                  MANAGE
+                </Button>
               </Stack>
             </Stack>
             {geoError && <Alert severity="info" sx={{ mt: 1.5 }}>{geoError}</Alert>}
@@ -363,7 +371,7 @@ const MapPage = () => {
                         <Popup>
                           <strong>{m.serialNumber}</strong>
                           <br />
-                          {m.type === "CAN" ? "캔자판기" : "플라스틱자판기"}
+                          {m.type === "CAN" ? "캔 순환자원 무인회수기" : "플라스틱 순환자원 무인회수기"}
                           <br />
                           지자체 설치 위치 안내
                         </Popup>
@@ -469,7 +477,7 @@ const MapPage = () => {
                   <Paper elevation={0} sx={{ border: "1px solid #e2e8f0", borderRadius: 2, p: 1.5, bgcolor: "#f8fafc" }}>
                     <Typography sx={{ fontWeight: 700, mb: 0.8 }}>
                       <RoomRoundedIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: "text-top" }} />
-                      지금 지역에 기반한 분리수거 배출방법
+                      지금 지역에 기반한 분리수거 배출방법 - {approxArea}
                     </Typography>
                     <Typography sx={{ whiteSpace: "pre-wrap", color: "#334155", fontSize: "0.88rem", lineHeight: 1.55 }}>
                       {guide}

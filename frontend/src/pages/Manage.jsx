@@ -144,13 +144,8 @@ const Manage = () => {
   }, []);
 
   useEffect(() => {
-    if (currentUser?.role !== "ADMIN") {
-      alert("관리자 전용 페이지입니다.");
-      navigate("/map");
-      return;
-    }
     loadOverview();
-  }, [currentUser?.role, navigate, loadOverview]);
+  }, [loadOverview]);
 
   const openModuleDialog = (m = null) => {
     if (m) {
@@ -275,8 +270,6 @@ const Manage = () => {
       setSaving(false);
     }
   };
-
-  if (currentUser?.role !== "ADMIN") return null;
 
   return (
     <Box
