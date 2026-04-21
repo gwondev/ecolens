@@ -106,6 +106,54 @@ public class ModuleController {
                 .build();
         moduleRepository.save(gjPet);
 
+        Module gjCan2 = Module.builder()
+                .serialNumber("gj-rvm-can-02")
+                .organization("GWANGJU_CITY")
+                .lat(35.1541200)
+                .lon(126.9137400)
+                .type("CAN")
+                .status("READY")
+                .totalDisposalCount(0)
+                .lastHeartbeat(LocalDateTime.now())
+                .build();
+        moduleRepository.save(gjCan2);
+
+        Module gjPet2 = Module.builder()
+                .serialNumber("gj-rvm-pet-02")
+                .organization("GWANGJU_CITY")
+                .lat(35.1324800)
+                .lon(126.9021600)
+                .type("PET")
+                .status("READY")
+                .totalDisposalCount(0)
+                .lastHeartbeat(LocalDateTime.now())
+                .build();
+        moduleRepository.save(gjPet2);
+
+        Module gjCan3 = Module.builder()
+                .serialNumber("gj-rvm-can-03")
+                .organization("GWANGJU_CITY")
+                .lat(35.1786000)
+                .lon(126.9114000)
+                .type("CAN")
+                .status("READY")
+                .totalDisposalCount(0)
+                .lastHeartbeat(LocalDateTime.now())
+                .build();
+        moduleRepository.save(gjCan3);
+
+        Module gjPet3 = Module.builder()
+                .serialNumber("gj-rvm-pet-03")
+                .organization("GWANGJU_CITY")
+                .lat(35.1660200)
+                .lon(126.8799500)
+                .type("PET")
+                .status("READY")
+                .totalDisposalCount(0)
+                .lastHeartbeat(LocalDateTime.now())
+                .build();
+        moduleRepository.save(gjPet3);
+
         return Map.of(
                 "seeded",
                 true,
@@ -114,7 +162,11 @@ public class ModuleController {
                         g1.getSerialNumber(),
                         g2.getSerialNumber(),
                         gjCan.getSerialNumber(),
-                        gjPet.getSerialNumber()
+                        gjPet.getSerialNumber(),
+                        gjCan2.getSerialNumber(),
+                        gjPet2.getSerialNumber(),
+                        gjCan3.getSerialNumber(),
+                        gjPet3.getSerialNumber()
                 )
         );
     }

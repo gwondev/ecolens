@@ -64,6 +64,46 @@ const GWANGJU_REVERSE_VENDING = [
     status: "READY",
     totalDisposalCount: 0,
   },
+  {
+    id: "gwangju-rvm-3",
+    serialNumber: "GJ-RVM-CAN-02",
+    organization: "GWANGJU_CITY",
+    lat: 35.15412,
+    lon: 126.91374,
+    type: "CAN",
+    status: "READY",
+    totalDisposalCount: 0,
+  },
+  {
+    id: "gwangju-rvm-4",
+    serialNumber: "GJ-RVM-PET-02",
+    organization: "GWANGJU_CITY",
+    lat: 35.13248,
+    lon: 126.90216,
+    type: "PET",
+    status: "READY",
+    totalDisposalCount: 0,
+  },
+  {
+    id: "gwangju-rvm-5",
+    serialNumber: "GJ-RVM-CAN-03",
+    organization: "GWANGJU_CITY",
+    lat: 35.1786,
+    lon: 126.9114,
+    type: "CAN",
+    status: "READY",
+    totalDisposalCount: 0,
+  },
+  {
+    id: "gwangju-rvm-6",
+    serialNumber: "GJ-RVM-PET-03",
+    organization: "GWANGJU_CITY",
+    lat: 35.16602,
+    lon: 126.87995,
+    type: "PET",
+    status: "READY",
+    totalDisposalCount: 0,
+  },
 ];
 
 const toNumber = (v) => {
@@ -177,6 +217,26 @@ const MapPage = () => {
   const selectedWasteType =
     overrideType || analysis?.finalType || analysis?.predictedType || "GENERAL";
 
+  const loadGuideForType = async (wasteType) => {
+    try {
+      setGuideLoading(true);
+      const payload = {
+        wasteType,
+        latitude: myPos?.[0] ?? "",
+        longitude: myPos?.[1] ?? "",
+      };
+      const res = await apiFetch("/ai/disposal-guide", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      setGuide(res?.guide || "안내를 불러오지 못했습니다.");
+    } catch (e) {
+      setError(e.message || "분리수거 안내를 가져오지 못했습니다.");
+    } finally {
+      setGuideLoading(false);
+    }
+  };
+
   const onFileChosen = (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -199,6 +259,8 @@ const MapPage = () => {
       }
       const res = await apiFetchMultipart("/ai/analyze", fd);
       setAnalysis(res);
+      const nextWasteType = overrideType || res?.finalType || res?.predictedType || "GENERAL";
+      await loadGuideForType(nextWasteType);
     } catch (e) {
       setError(e.message || "이미지 분석에 실패했습니다.");
     } finally {
@@ -220,7 +282,7 @@ const MapPage = () => {
       });
       setGuide(res?.guide || "안내를 불러오지 못했습니다.");
     } catch (e) {
-      setError(e.message || "지역 분리수거 안내를 가져오지 못했습니다.");
+      setError(e.message || "분리수거 안내를 가져오지 못했습니다.");
     } finally {
       setGuideLoading(false);
     }
@@ -318,11 +380,9 @@ const MapPage = () => {
                         <Popup>
                           <strong>{m.serialNumber}</strong>
                           <br />
-                          유형: {TYPE_LABELS[m.type] || m.type}
+                          {m.type === "CAN" ? "캔자판기" : "플라스틱자판기"}
                           <br />
-                          상태: {m.status}
-                          <br />
-                          누적 배출: {m.totalDisposalCount ?? 0}회
+                          지자체 설치 위치 안내
                         </Popup>
                       </Marker>
                     );
@@ -362,7 +422,7 @@ const MapPage = () => {
                   AI 분리수거 도우미
                 </Typography>
                 <Typography sx={{ color: "#64748b", fontSize: "0.9rem" }}>
-                  사진 업로드 후 Gemini API로 폐기물 분류를 진행하고, 바로 실행할 분리배출 가이드를 제공합니다.
+                  사진 업로드 후 Gemini API로 폐기물 분류를 진행하고, 결과와 함께 분리배출 방법을 바로 보여줍니다.
                 </Typography>
 
                 <input
@@ -439,20 +499,11 @@ const MapPage = () => {
                   </Paper>
                 )}
 
-                <Button
-                  variant="outlined"
-                  onClick={fetchGuide}
-                  disabled={guideLoading}
-                  sx={{ borderColor: "#cbd5e1", color: "#0f172a", textTransform: "none", fontWeight: 700 }}
-                >
-                  {guideLoading ? "안내 생성 중..." : "분리배출 안내 받기"}
-                </Button>
-
                 {guide && (
                   <Paper elevation={0} sx={{ border: "1px solid #e2e8f0", borderRadius: 2, p: 1.5, bgcolor: "#f8fafc" }}>
                     <Typography sx={{ fontWeight: 700, mb: 0.8 }}>
                       <RoomRoundedIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: "text-top" }} />
-                      분리배출 안내
+                      지금 지역에 기반한 분리수거 배출방법
                     </Typography>
                     <Typography sx={{ whiteSpace: "pre-wrap", color: "#334155", fontSize: "0.88rem", lineHeight: 1.55 }}>
                       {guide}
@@ -466,7 +517,7 @@ const MapPage = () => {
                   근처 수거 포인트: {mapModules.length}개
                 </Typography>
                 <Typography sx={{ color: "#64748b", fontSize: "0.85rem" }}>
-                  지도 마커에서 캔/PET 수거 포인트와 광주 리버스벤딩(보상형) 자판기 위치를 확인할 수 있습니다.
+                  지도 마커에서 광주광역시 지자체 설치 회수 포인트 위치를 확인할 수 있습니다.
                 </Typography>
               </Stack>
             </Paper>

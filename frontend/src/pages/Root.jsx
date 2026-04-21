@@ -94,7 +94,7 @@ const Root = () => {
     <Box
       sx={{
         minHeight: "100dvh",
-        bgcolor: "#050505",
+        bgcolor: "#ffffff",
         color: "#fff",
         display: "flex",
         alignItems: "center",
@@ -107,7 +107,7 @@ const Root = () => {
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(circle at 50% 20%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 55%)",
+            "radial-gradient(circle at 50% 20%, rgba(0,0,0,0.05) 0%, rgba(255,255,255,0) 55%)",
           pointerEvents: "none",
         }}
       />
@@ -124,8 +124,9 @@ const Root = () => {
               width: "100%",
               borderRadius: 3,
               p: { xs: 3, sm: 4 },
-              border: "1px solid rgba(255,255,255,0.18)",
-              background: "linear-gradient(170deg, #0f0f0f 0%, #070707 100%)",
+              border: "none",
+              boxShadow: "none",
+              background: "linear-gradient(170deg, #ffffff 0%, #f7f7f7 100%)",
               position: "relative",
               overflow: "hidden",
             }}
@@ -135,7 +136,7 @@ const Root = () => {
                 position: "absolute",
                 inset: 0,
                 background:
-                  "repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 6px)",
+                  "repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 6px)",
                 animation: `${scanline} 8s linear infinite`,
                 pointerEvents: "none",
               }}
@@ -147,7 +148,7 @@ const Root = () => {
                     position: "absolute",
                     inset: -10,
                     borderRadius: "999px",
-                    border: "1px solid rgba(255,255,255,0.35)",
+                    border: "1px solid rgba(0,0,0,0.18)",
                     animation: `${pulseRing} 2.8s ease-in-out infinite`,
                   }}
                 />
@@ -156,16 +157,17 @@ const Root = () => {
                     fontSize: { xs: "2.4rem", sm: "3.6rem" },
                     fontWeight: 900,
                     letterSpacing: "0.11em",
-                    textShadow: "0 0 20px rgba(255,255,255,0.28)",
+                    color: "#ffffff",
+                    textShadow: "0 2px 14px rgba(0,0,0,0.45)",
                   }}
                 >
                   ECOLENS
                 </Typography>
               </Box>
-              <Typography sx={{ fontSize: "0.86rem", color: "rgba(255,255,255,0.72)", letterSpacing: "0.18em", textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: "0.86rem", color: "rgba(0,0,0,0.62)", letterSpacing: "0.18em", textTransform: "uppercase" }}>
                 Black and White Smart Recycling
               </Typography>
-              <Typography sx={{ fontSize: "1rem", color: "rgba(255,255,255,0.76)", lineHeight: 1.6 }}>
+              <Typography sx={{ fontSize: "1rem", color: "rgba(0,0,0,0.72)", lineHeight: 1.6 }}>
                 사진 인식과 지도 기반 수거 포인트를 한 화면에서 연결해요.
               </Typography>
             </Stack>
