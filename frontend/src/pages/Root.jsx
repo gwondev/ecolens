@@ -168,7 +168,7 @@ const Root = () => {
                   letterSpacing: "0.02em",
                 }}
               >
-                AI 분리수거 안내 및 자원회수 위치 안내
+                AI 분리배출 도우미 : 지역 규정 + 회수 거점 안내
               </Typography>
             </Stack>
           </Box>
