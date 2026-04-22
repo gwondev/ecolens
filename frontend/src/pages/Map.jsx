@@ -237,7 +237,7 @@ const MapPage = () => {
                   반가워요, {user?.nickname || "green-user"}님
                 </Typography>
                 <Typography sx={{ color: "#64748b", mt: 0.5 }}>
-                  지도에서 수거 포인트를 확인하고, 사진 촬영 후 바로 분리배출 안내를 받아보세요.
+                사진 촬영 후 바로 분리배출 안내를 받아보세요. 또한 지도에서 수거 포인트를 확인하고, 직접 방문해보세요.
                 </Typography>
               </Box>
               <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
